@@ -594,16 +594,16 @@ function App() {
 
           {teachers.map((teacher) => (
             <div key={teacher.id} className="glass-card" style={{ marginBottom: '1rem', padding: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: '1rem' }}>
-                <div style={{ width: '70%', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <label style={{ fontWeight: 'bold', whiteSpace: 'nowrap', fontSize: '1.1rem', color: 'var(--primary)' }}>اسم المعلم:</label>
-                  <div style={{ flex: 1, position: 'relative' }}>
+              <div className="teacher-row-header">
+                <div className="teacher-name-group">
+                  <label className="teacher-name-label">اسم المعلم:</label>
+                  <div style={{ flex: 1, position: 'relative', width: '100%' }}>
                     <input 
                       type="text" 
-                      className="form-input" 
+                      className="form-input teacher-name-input" 
                       value={teacher.name} 
                       onChange={(e) => updateTeacherName(teacher.id, e.target.value)} 
-                      style={{ fontSize: '1.1rem', fontWeight: 'bold', background: 'transparent', border: !teacher.name.trim() ? '2px dashed #ef4444' : '1px dashed rgba(0,0,0,0.2)' }}
+                      style={{ border: !teacher.name.trim() ? '2px dashed #ef4444' : '1px dashed rgba(0,0,0,0.2)' }}
                       placeholder="أدخل اسم المعلم..."
                       required
                     />

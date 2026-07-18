@@ -286,12 +286,65 @@ body {
   }
 
   .btn-primary {
-    padding: 1rem;
-    font-size: 1.15rem;
+    padding: 0.8rem;
+    font-size: 1rem;
     border-radius: 12px;
   }
   
   .form-input, .form-select, .form-textarea {
-    padding: 0.875rem 1rem;
+    padding: 0.75rem 1rem;
+    font-size: 16px; /* Prevents zooming on iOS */
   }
+
+  /* Teacher Mobile Layout */
+  .teacher-row-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+
+  .teacher-name-group {
+    width: 100% !important;
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+
+  .teacher-name-label {
+    font-size: 0.95rem !important;
+  }
+
+  .teacher-name-input {
+    font-size: 1rem !important;
+  }
+}
+
+/* Base Teacher Styles */
+.teacher-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  padding-bottom: 1rem;
+}
+
+.teacher-name-group {
+  width: 70%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.teacher-name-label {
+  font-weight: bold;
+  white-space: nowrap;
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+.teacher-name-input {
+  font-size: 1.1rem;
+  font-weight: bold;
+  background: transparent;
 }
