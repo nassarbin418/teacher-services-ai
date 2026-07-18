@@ -462,7 +462,7 @@ function App() {
     <div className="app-container">
       <header className="header" style={{ marginBottom: '1rem' }}>
         <div className="header-logo">
-          <img src="/logo.jpg" alt="مكتبة نصار لخدمات المعلمين" />
+          <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="مكتبة نصار لخدمات المعلمين" />
         </div>
       </header>
 
