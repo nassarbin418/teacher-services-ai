@@ -444,12 +444,7 @@ function App() {
         if (itemsError) throw itemsError;
       }
 
-      alert('تم تأكيد الطلب وحفظه بنجاح!');
-      // Reset form
-      setCustomerInfo({ name: '', phone: '', schoolName: '', directorate: '', governorate: '', district: '', deliveryType: 'pickup' });
-      setTeachers([{ id: 't1', name: '', items: [] }]);
-      setExpandedItems([]);
-      setStep(1);
+      setStep(4);
     } catch (err: any) {
       console.error('Error submitting order:', err);
       alert('حدث خطأ أثناء حفظ الطلب: ' + err.message);
@@ -803,6 +798,35 @@ function App() {
               {isSubmitting ? 'جاري إرسال الطلب...' : 'إرسال الطلب النهائي'}
             </button>
           </div>
+        </section>
+
+      )}
+
+      {/* STEP 4: Thank You Screen */}
+      {step === 4 && (
+        <section className="glass-card fade-in" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+            <CheckCircle size={80} style={{ color: '#10b981' }} />
+          </div>
+          <h2 style={{ fontSize: '2.5rem', color: 'var(--primary)', marginBottom: '1rem', fontWeight: '900' }}>شكراً لك!</h2>
+          <p style={{ fontSize: '1.2rem', color: 'var(--text-light)', marginBottom: '1rem', lineHeight: '1.6' }}>
+            تم استلام طلبك بنجاح. سيتم التواصل معك في أقرب وقت لتأكيد التفاصيل.
+          </p>
+          <p style={{ fontSize: '1.1rem', color: 'var(--text)', marginBottom: '3rem', fontWeight: 'bold', background: 'rgba(30, 58, 138, 0.05)', padding: '1rem', borderRadius: '12px', display: 'inline-block' }}>
+            إذا كان لديك أي استفسار، لا تتردد بالتواصل معنا عبر واتساب 📞
+          </p>
+          <button 
+            className="btn-primary" 
+            onClick={() => {
+              setCustomerInfo({ name: '', phone: '', schoolName: '', directorate: '', governorate: '', district: '', deliveryType: 'pickup' });
+              setTeachers([{ id: 't1', name: '', items: [] }]);
+              setExpandedItems([]);
+              setStep(1);
+            }} 
+            style={{ maxWidth: '300px', margin: '0 auto' }}
+          >
+            <Plus size={20} /> إدخال طلب جديد
+          </button>
         </section>
       )}
     </div>
