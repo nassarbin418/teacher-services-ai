@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, User, MapPin, Phone, Truck, CheckCircle, Plus, Trash2, ArrowRight, ArrowLeft, Store, Loader2 } from 'lucide-react';
+import { BookOpen, User, Truck, CheckCircle, Plus, Trash2, ArrowLeft, Store, Loader2 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 // Pricing Data
@@ -378,10 +378,6 @@ function App() {
            customerInfo.directorate && 
            isGovValid && 
            isDistValid;
-  };
-
-  const hasAtLeastOneItem = () => {
-    return teachers.some(t => t.items.length > 0);
   };
 
   const submitOrder = async () => {
