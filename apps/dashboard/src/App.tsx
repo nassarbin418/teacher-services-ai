@@ -447,31 +447,24 @@ function App() {
                 <table className="orders-table">
                   <thead>
                     <tr>
-                      <th>رقم الطلب</th>
                       <th>تاريخ الطلب</th>
                       <th>اسم العميل</th>
                       <th>رقم الهاتف</th>
-                      <th>المدرسة</th>
                       <th>نوع التوصيل</th>
                       <th>السعر الإجمالي</th>
                       <th>اسم المندوب</th>
                       <th>الحالة</th>
                       <th>تصدير</th>
-                      <th>توسيع</th>
+                      <th>تفاصيل</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentOrders.map((order) => (
                       <React.Fragment key={order.id}>
                         <tr className={expandedOrder === order.id ? 'expanded-row' : ''}>
-                          <td><strong>#{order.id}</strong></td>
                           <td dir="ltr" style={{ textAlign: 'right' }}>{new Date(order.created_at).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}</td>
                           <td>{order.customer_name}</td>
                           <td dir="ltr" style={{ textAlign: 'right' }}>{order.phone}</td>
-                          <td>
-                            {order.school_name} <br />
-                            <span style={{ fontSize: '0.8rem', color: 'gray' }}>{order.school_type || ''} - {order.district}</span>
-                          </td>
                           <td>
                             <span className={`badge ${order.delivery_type === 1 ? 'delivery' : 'pickup'}`}>
                               {order.delivery_type === 1 ? 'توصيل' : 'استلام'}
@@ -514,8 +507,13 @@ function App() {
                             </select>
                           </td>
                           <td>
-                            <button className="icon-btn action" onClick={() => handleExport(order)} title="تصدير لملف إكسل">
-                              <Download size={18} color="white" />
+                            <button 
+                              className="icon-btn" 
+                              style={{ background: '#e0f2fe', width: '40px', height: '40px', borderRadius: '10px' }} 
+                              onClick={() => handleExport(order)} 
+                              title="تصدير لملف إكسل"
+                            >
+                              <Download size={20} color="#0284c7" />
                             </button>
                           </td>
                           <td>
@@ -529,20 +527,29 @@ function App() {
                         </tr>
                         {expandedOrder === order.id && (
                           <tr className="details-row">
-                            <td colSpan={11}>
+                            <td colSpan={10}>
                               <div className="order-details-card">
 
-                                {order.delivery_type === 1 && (
-                                  <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px' }}>
-                                    <h4 style={{ margin: '0 0 0.5rem 0' }}>معلومات التوصيل</h4>
-                                    <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                                      <strong>المحافظة:</strong> {order.governorate} | <strong>المنطقة:</strong> {order.district} <br />
-                                      <strong>مكان المدرسة:</strong> {order.school_location || 'غير متوفر'} <br />
-                                      <strong>مكان البيت:</strong> {order.home_location || 'غير متوفر'} <br />
-                                      <strong>رقم الهاتف 1:</strong> <span dir="ltr">{order.phone}</span> | <strong>رقم الهاتف 2:</strong> <span dir="ltr">{order.phone2 || 'لا يوجد'}</span>
-                                    </p>
+                                {/* معلومات العميل الكاملة - تظهر دائماً */}
+                                <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                  <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>معلومات العميل</h4>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem 1rem', fontSize: '0.9rem' }}>
+                                    <div><strong>الاسم:</strong> {order.customer_name}</div>
+                                    <div><strong>الهاتف 1:</strong> <span dir="ltr">{order.phone}</span></div>
+                                    {order.phone2 && <div><strong>الهاتف 2:</strong> <span dir="ltr">{order.phone2}</span></div>}
+                                    <div><strong>المدرسة:</strong> {order.school_name}</div>
+                                    <div><strong>نوع المدرسة:</strong> {order.school_type || '—'}</div>
+                                    <div><strong>نوع التعليم:</strong> {order.directorate || '—'}</div>
+                                    <div><strong>المحافظة:</strong> {order.governorate || '—'}</div>
+                                    <div><strong>اللواء / المنطقة:</strong> {order.district || '—'}</div>
                                   </div>
-                                )}
+                                  {order.delivery_type === 1 && (
+                                    <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #cbd5e1', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                      <div><strong>عنوان المدرسة:</strong> {order.school_location ? (order.school_location.includes(' - ') ? order.school_location : `${order.governorate} - ${order.school_location}`) : 'غير متوفر'}</div>
+                                      <div><strong>عنوان البيت:</strong> {order.home_location ? (order.home_location.includes(' - ') ? order.home_location : `${order.governorate} - ${order.home_location}`) : 'غير متوفر'}</div>
+                                    </div>
+                                  )}
+                                </div>
 
                                 <h4>تفاصيل المعلمين والمواد</h4>
                                 {order.order_items && order.order_items.length > 0 ? (

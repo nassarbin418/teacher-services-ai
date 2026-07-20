@@ -16,7 +16,9 @@ interface CustomerInfo {
   district: string;
   otherDistrict: string;
   deliveryType: 'pickup' | 'delivery';
+  schoolDeliveryGov: string;
   schoolLocation: string;
+  homeDeliveryGov: string;
   homeLocation: string;
 }
 
@@ -199,7 +201,7 @@ function LandingScreen({ onGo }: any) {
         <img src="logo.jpg" alt="Logo" style={{ width: '160px', display: 'block', margin: '0 auto 1.5rem auto' }} />
         <h1 style={{ fontSize: '2.2rem', color: 'var(--primary)', marginBottom: '0.5rem' }}>مكتبة نصار - منصة المعلمين</h1>
         <p style={{ color: 'var(--text-light)', marginBottom: '1rem', fontSize: '1.1rem', lineHeight: '1.6' }}>
-          نقدم لك خدمة تصميم الخطط الفصلية وتحضير الدروس بأعلى جودة لتوفير وقتك وجهدك.
+          نقدم لك خدمة إعداد الخطط الفصلية وتحضير الدروس بأعلى جودة لتوفير وقتك وجهدك.
         </p>
         <p style={{ color: 'var(--primary)', fontWeight: 'bold', marginBottom: '1rem', fontSize: '1.2rem' }}>أهلاً بك.. اختر الخدمة التي تريدها للبدء</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -309,20 +311,69 @@ function InquiryScreen({ onBack, showToast }: any) {
                     <h4 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--primary)', fontWeight: 'bold' }}>رقم الطلب: #{order.id}</h4>
                     {getStatusBadge(order.status)}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', marginBottom: '1.5rem', color: '#475569', fontSize: '1rem', fontWeight: '500' }}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ width: '120px', color: 'var(--primary)', fontWeight: 'bold' }}>المدرسة:</span>
-                      <span>{order.school_name}</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem 1rem', marginBottom: '1.5rem', background: '#f8fafc', borderRadius: '10px', padding: '1rem', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}>
+                    <div><strong style={{ color: 'var(--primary)' }}>الاسم:</strong> {order.customer_name}</div>
+                    <div><strong style={{ color: 'var(--primary)' }}>المدرسة:</strong> {order.school_name}</div>
+                    <div><strong style={{ color: 'var(--primary)' }}>نوع المدرسة:</strong> {order.school_type}</div>
+                    <div><strong style={{ color: 'var(--primary)' }}>نوع التعليم:</strong> {order.directorate}</div>
+                    <div><strong style={{ color: 'var(--primary)' }}>المحافظة:</strong> {order.governorate}</div>
+                    {order.district && <div><strong style={{ color: 'var(--primary)' }}>اللواء:</strong> {order.district}</div>}
+                    {order.phone2 && <div><strong style={{ color: 'var(--primary)' }}>هاتف بديل:</strong> {order.phone2}</div>}
+                    <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #cbd5e1', paddingTop: '0.6rem', marginTop: '0.25rem' }}>
+                      <strong style={{ color: 'var(--primary)' }}>الاستلام:</strong>{' '}
+                      {order.delivery_type === 1 ? 'توصيل 🚚' : 'استلام من المكتبة 🏪'}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ width: '120px', color: 'var(--primary)', fontWeight: 'bold' }}>التاريخ:</span>
-                      <span dir="ltr">{new Date(order.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ width: '120px', color: 'var(--primary)', fontWeight: 'bold' }}>التكلفة الإجمالية:</span>
-                      <span>{order.total_amount} د.أ</span>
+                    {order.delivery_type === 1 && order.school_location && (
+                      <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: 'var(--primary)' }}>عنوان المدرسة:</strong> {order.school_location.includes(' - ') ? order.school_location : `${order.governorate} - ${order.school_location}`}</div>
+                    )}
+                    {order.delivery_type === 1 && order.home_location && (
+                      <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: 'var(--primary)' }}>عنوان البيت:</strong> {order.home_location.includes(' - ') ? order.home_location : `${order.governorate} - ${order.home_location}`}</div>
+                    )}
+                    <div style={{ gridColumn: '1 / -1', color: '#64748b', fontSize: '0.85rem' }}>
+                      <strong style={{ color: 'var(--primary)' }}>التاريخ:</strong>{' '}
+                      <span dir="ltr">{new Date(order.created_at).toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                     </div>
                   </div>
+
+                  {order.order_items && order.order_items.length > 0 && (
+                      <div style={{ marginTop: '1rem', background: '#f8fafc', borderRadius: '8px', padding: '1rem', border: '1px solid #e2e8f0' }}>
+                        <h5 style={{ margin: '0 0 1rem 0', color: 'var(--primary)', fontSize: '1.05rem' }}>تفاصيل الطلب:</h5>
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '2px solid #cbd5e1', color: '#64748b' }}>
+                                <th style={{ textAlign: 'right', padding: '0.5rem' }}>المعلم</th>
+                                <th style={{ textAlign: 'right', padding: '0.5rem' }}>المادة</th>
+                                <th style={{ textAlign: 'right', padding: '0.5rem' }}>الصف</th>
+                                <th style={{ textAlign: 'right', padding: '0.5rem' }}>الخدمة</th>
+                                <th style={{ textAlign: 'left', padding: '0.5rem' }}>السعر</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {order.order_items.map((item: any) => (
+                                <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                  <td style={{ padding: '0.5rem' }}>{item.teacher_name}</td>
+                                  <td style={{ padding: '0.5rem' }}>{item.subject}</td>
+                                  <td style={{ padding: '0.5rem' }}>{item.grade}</td>
+                                  <td style={{ padding: '0.5rem' }}>
+                                    {['الأول', 'الثاني', 'الثالث'].includes(item.grade) ? 'خطة وتحضير وتحليل' : item.service_type === 0 ? 'خطة' : item.service_type === 1 ? 'تحضير' : 'خطة وتحضير'}
+                                  </td>
+                                  <td style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 'bold' }}>{item.price} د.أ</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #cbd5e1' }}>
+                          <span style={{ fontWeight: 'bold', color: '#475569' }}>خدمة التوصيل:</span>
+                          <span style={{ fontWeight: 'bold', color: '#475569' }}>{order.delivery_cost} د.أ</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                          <span style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '1.1rem' }}>التكلفة الإجمالية:</span>
+                          <span style={{ fontWeight: 'bold', color: '#059669', fontSize: '1.1rem' }}>{order.total_amount} د.أ</span>
+                        </div>
+                      </div>
+                    )}
 
                   {order.status === 0 || order.status === 1 ? (
                     confirmRejectId === order.id ? (
@@ -353,7 +404,7 @@ function OrderForm({ onBack, showToast }: any) {
   const [step, setStep] = useState(1);
   const [dbSubjects, setDbSubjects] = useState<any[]>([]);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
-    name: '', phone: '', phone2: '', schoolName: '', schoolType: '', directorate: 'التعليم الخاص', governorate: 'عمان', district: '', otherDistrict: '', deliveryType: 'pickup', schoolLocation: '', homeLocation: ''
+    name: '', phone: '', phone2: '', schoolName: '', schoolType: '', directorate: '', governorate: '', district: '', otherDistrict: '', deliveryType: 'pickup', schoolDeliveryGov: '', schoolLocation: '', homeDeliveryGov: '', homeLocation: ''
   });
   const [teachers, setTeachers] = useState<Teacher[]>([{ id: 't1', name: '', items: [] }]);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -370,7 +421,7 @@ function OrderForm({ onBack, showToast }: any) {
         const map: Record<string, string[]> = {};
         data.forEach((loc: any) => {
           const districts = loc.districts.filter((d: string) => d !== 'أخرى' && d !== 'إضافة');
-          map[loc.governorate] = ['إضافة', ...districts];
+          map[loc.governorate] = districts;
         });
         setLocations(map);
       }
@@ -384,6 +435,9 @@ function OrderForm({ onBack, showToast }: any) {
       // Allow only numbers and plus sign for phone fields
       if (name === 'phone' || name === 'phone2') {
         finalValue = value.replace(/[^0-9+]/g, '');
+        if (finalValue.startsWith('07') && finalValue.length > 10) {
+          finalValue = finalValue.slice(0, 10);
+        }
       }
       const updated = { ...prev, [name]: finalValue };
       if (name === 'governorate') updated.district = '';
@@ -403,7 +457,9 @@ function OrderForm({ onBack, showToast }: any) {
       if (t.id !== teacherId) return t;
       const existing = t.items.find(i => i.subjectId === subject.id);
       if (existing) return { ...t, items: t.items.filter(i => i.subjectId !== subject.id) };
-      return { ...t, items: [...t.items, { id: Math.random().toString(), subjectId: subject.id, grades: [], serviceType: 'both' }] };
+      const newItemId = Math.random().toString();
+      setExpandedItems(prev => [...prev, newItemId]);
+      return { ...t, items: [...t.items, { id: newItemId, subjectId: subject.id, grades: [], serviceType: 'both' }] };
     }));
   };
 
@@ -523,9 +579,12 @@ function OrderForm({ onBack, showToast }: any) {
     }
   };
 
-  const isDeliveryValid = customerInfo.deliveryType === 'pickup' || (customerInfo.deliveryType === 'delivery' && customerInfo.schoolLocation && customerInfo.homeLocation);
-  const isStep1Valid = customerInfo.name && customerInfo.phone && customerInfo.schoolName && customerInfo.schoolType && customerInfo.directorate && customerInfo.governorate && customerInfo.district && (customerInfo.district !== 'إضافة' || customerInfo.otherDistrict) && isDeliveryValid;
-  const isStep2Valid = teachers.every(t => t.name && t.items.length > 0 && t.items.every(i => i.grades.length > 0));
+  const isDeliveryValid = customerInfo.deliveryType === 'pickup' || (customerInfo.deliveryType === 'delivery' && customerInfo.schoolDeliveryGov && customerInfo.schoolLocation && customerInfo.homeDeliveryGov && customerInfo.homeLocation);
+  const isPrivate = customerInfo.directorate === 'التعليم الخاص';
+  const isNameValid = customerInfo.name && customerInfo.name.trim().split(/\s+/).length >= 2;
+  const isPhoneValid = customerInfo.phone && (!customerInfo.phone.startsWith('07') || customerInfo.phone.length === 10);
+  const isStep1Valid = isNameValid && isPhoneValid && customerInfo.schoolName && customerInfo.schoolType && customerInfo.directorate && customerInfo.governorate && (isPrivate || (customerInfo.district && (customerInfo.district !== 'إضافة' || customerInfo.otherDistrict))) && isDeliveryValid;
+  const isStep2Valid = teachers.every(t => t.name && t.name.trim().split(/\s+/).length >= 2 && t.items.length > 0 && t.items.every(i => i.grades.length > 0));
   const isStep3Valid = true;
 
   return (
@@ -595,6 +654,25 @@ function OrderForm({ onBack, showToast }: any) {
                 <input className="form-input" type="tel" name="phone2" value={customerInfo.phone2} onChange={handleCustomerChange} maxLength={15} placeholder="رقم هاتف بديل للتواصل" dir={customerInfo.phone2 ? 'ltr' : 'rtl'} style={{ textAlign: 'right' }} />
               </div>
             </div>
+            {/* نوع التعليم */}
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label" style={{ textAlign: 'right' }}>نوع التعليم <span style={{ color: 'red' }}>*</span></label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div
+                  onClick={() => setCustomerInfo({ ...customerInfo, directorate: 'التعليم الحكومي', district: '', otherDistrict: '' })}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.9rem', border: customerInfo.directorate === 'التعليم الحكومي' ? '2px solid var(--primary)' : '1px solid var(--border)', borderRadius: '10px', cursor: 'pointer', background: customerInfo.directorate === 'التعليم الحكومي' ? 'rgba(79,70,229,0.06)' : 'white', fontWeight: 'bold', color: customerInfo.directorate === 'التعليم الحكومي' ? 'var(--primary)' : 'var(--text)', transition: '0.2s' }}
+                >
+                  🏫 تعليم حكومي
+                </div>
+                <div
+                  onClick={() => setCustomerInfo({ ...customerInfo, directorate: 'التعليم الخاص', district: '', otherDistrict: '' })}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.9rem', border: customerInfo.directorate === 'التعليم الخاص' ? '2px solid var(--primary)' : '1px solid var(--border)', borderRadius: '10px', cursor: 'pointer', background: customerInfo.directorate === 'التعليم الخاص' ? 'rgba(79,70,229,0.06)' : 'white', fontWeight: 'bold', color: customerInfo.directorate === 'التعليم الخاص' ? 'var(--primary)' : 'var(--text)', transition: '0.2s' }}
+                >
+                  🏛️ تعليم خاص
+                </div>
+              </div>
+            </div>
+
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label" style={{ textAlign: 'right' }}>المحافظة <span style={{ color: 'red' }}>*</span></label>
@@ -607,14 +685,14 @@ function OrderForm({ onBack, showToast }: any) {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label" style={{ textAlign: 'right' }}>اللواء / المنطقة <span style={{ color: 'red' }}>*</span></label>
+                <label className="form-label" style={{ textAlign: 'right' }}>اللواء / المنطقة {!isPrivate && <span style={{ color: 'red' }}>*</span>}{isPrivate && <span style={{ color: '#64748b', fontWeight: 'normal', fontSize: '0.85rem' }}> (اختياري)</span>}</label>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
                   <div style={{ flex: 1 }}>
                     <SearchableSelect 
                       options={customerInfo.governorate ? locations[customerInfo.governorate] : []} 
                       value={customerInfo.district === 'إضافة' ? '' : customerInfo.district} 
                       onChange={(val: string) => setCustomerInfo({...customerInfo, district: val, otherDistrict: ''})} 
-                      placeholder="ابحث لاختيار لواء..." 
+                      placeholder={isPrivate ? 'اختياري - ابحث لاختيار لواء...' : 'ابحث لاختيار لواء...'} 
                       disabled={!customerInfo.governorate} 
                       allowAdd={false} 
                     />
@@ -642,13 +720,14 @@ function OrderForm({ onBack, showToast }: any) {
                   </button>
                 </div>
               </div>
-              {customerInfo.district === 'إضافة' && (
-                <div className="form-group">
-                  <label className="form-label" style={{ textAlign: 'right' }}>اسم اللواء / المنطقة الجديد <span style={{ color: 'red' }}>*</span></label>
-                  <input className="form-input" type="text" name="otherDistrict" value={customerInfo.otherDistrict} onChange={handleCustomerChange} maxLength={50} placeholder="اكتب اسم اللواء/المنطقة هنا..." />
-                </div>
-              )}
             </div>
+
+            {customerInfo.district === 'إضافة' && (
+              <div className="form-group" style={{ marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+                <label className="form-label" style={{ textAlign: 'right' }}>اسم اللواء / المنطقة الجديد <span style={{ color: 'red' }}>*</span></label>
+                <input className="form-input" type="text" name="otherDistrict" value={customerInfo.otherDistrict} onChange={handleCustomerChange} maxLength={50} placeholder="اكتب اسم اللواء/المنطقة هنا..." />
+              </div>
+            )}
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label" style={{ textAlign: 'right' }}>اسم المدرسة <span style={{ color: 'red' }}>*</span></label>
@@ -691,12 +770,38 @@ function OrderForm({ onBack, showToast }: any) {
                 </div>
                 <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--primary)', fontSize: '1.1rem' }}>تفاصيل العنوان الدقيق للتوصيل</h3>
                 <div className="form-group">
-                  <label>العنوان بالتفصيل (مكان المدرسة) <span style={{ color: 'red' }}>*</span></label>
-                  <input className="form-input" type="text" name="schoolLocation" value={customerInfo.schoolLocation} onChange={handleCustomerChange} maxLength={200} placeholder="مثال: بجانب مسجد التقوى، شارع المدارس" />
+                  <label>
+                    العنوان بالتفصيل (مكان المدرسة) <span style={{ color: 'red' }}>*</span>
+                    <div style={{ fontSize: '0.85rem', color: '#dc2626', marginTop: '0.25rem', fontWeight: 'normal' }}>
+                      * يرجى اختيار المحافظة وكتابة تفاصيل الموقع بالكامل (المنطقة، الشارع) لتسهيل وتسريع التوصيل
+                    </div>
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginTop: '0.5rem' }}>
+                    <SearchableSelect
+                      options={Object.keys(locations)}
+                      value={customerInfo.schoolDeliveryGov}
+                      onChange={(val: string) => setCustomerInfo({ ...customerInfo, schoolDeliveryGov: val })}
+                      placeholder="اختر المحافظة"
+                    />
+                    <input className="form-input" type="text" name="schoolLocation" value={customerInfo.schoolLocation} onChange={handleCustomerChange} maxLength={200} placeholder="مثال: طبربور، بجانب مسجد التقوى" />
+                  </div>
                 </div>
                 <div className="form-group">
-                  <label>العنوان بالتفصيل (مكان البيت) <span style={{ color: 'red' }}>*</span></label>
-                  <input className="form-input" type="text" name="homeLocation" value={customerInfo.homeLocation} onChange={handleCustomerChange} maxLength={200} placeholder="مثال: حي الزهور، عمارة رقم 5" />
+                  <label>
+                    العنوان بالتفصيل (مكان البيت) <span style={{ color: 'red' }}>*</span>
+                    <div style={{ fontSize: '0.85rem', color: '#dc2626', marginTop: '0.25rem', fontWeight: 'normal' }}>
+                      * يرجى اختيار المحافظة وكتابة تفاصيل الموقع بالكامل (المنطقة، الشارع) لتسهيل وتسريع التوصيل
+                    </div>
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginTop: '0.5rem' }}>
+                    <SearchableSelect
+                      options={Object.keys(locations)}
+                      value={customerInfo.homeDeliveryGov}
+                      onChange={(val: string) => setCustomerInfo({ ...customerInfo, homeDeliveryGov: val })}
+                      placeholder="اختر المحافظة"
+                    />
+                    <input className="form-input" type="text" name="homeLocation" value={customerInfo.homeLocation} onChange={handleCustomerChange} maxLength={200} placeholder="مثال: حي الزهور، عمارة رقم 5" />
+                  </div>
                 </div>
               </div>
             )}
@@ -705,14 +810,16 @@ function OrderForm({ onBack, showToast }: any) {
               <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '1.5rem', marginBottom: '1.5rem' }}>
                 <p style={{ color: '#ef4444', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>الرجاء إكمال/تصحيح الحقول التالية للمتابعة:</p>
                 <ul style={{ color: '#ef4444', margin: 0, paddingRight: '1.5rem', fontSize: '0.9rem' }}>
-                  {!customerInfo.name && <li>الاسم الكامل</li>}
+                  {!isNameValid && <li>الاسم الكامل (يجب أن يتكون من مقطعين على الأقل)</li>}
                   {!customerInfo.phone && <li>رقم الهاتف</li>}
+                  {customerInfo.phone && customerInfo.phone.startsWith('07') && customerInfo.phone.length !== 10 && <li>رقم الهاتف (يجب أن يكون 10 خانات)</li>}
                   {!customerInfo.schoolName && <li>اسم المدرسة</li>}
                   {!customerInfo.schoolType && <li>نوع المدرسة</li>}
+                  {!customerInfo.directorate && <li>نوع التعليم</li>}
                   {!customerInfo.governorate && <li>المحافظة</li>}
-                  {!customerInfo.district && <li>اللواء / المنطقة</li>}
-                  {customerInfo.district === 'إضافة' && !customerInfo.otherDistrict && <li>اسم اللواء / المنطقة الجديد</li>}
-                  {customerInfo.deliveryType === 'delivery' && (!customerInfo.schoolLocation || !customerInfo.homeLocation) && <li>تفاصيل عنوان التوصيل</li>}
+                  {!isPrivate && !customerInfo.district && <li>اللواء / المنطقة</li>}
+                  {!isPrivate && customerInfo.district === 'إضافة' && !customerInfo.otherDistrict && <li>اسم اللواء / المنطقة الجديد</li>}
+                  {customerInfo.deliveryType === 'delivery' && (!customerInfo.schoolDeliveryGov || !customerInfo.schoolLocation || !customerInfo.homeDeliveryGov || !customerInfo.homeLocation) && <li>تفاصيل عنوان التوصيل (المحافظة والمنطقة)</li>}
                 </ul>
               </div>
             )}
@@ -819,7 +926,7 @@ function OrderForm({ onBack, showToast }: any) {
                           {hasPackageGrades && (
                             <div style={{ background: '#fef3c7', padding: '1rem', borderRadius: '8px', color: '#92400e', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
                               <Package size={20} />
-                              <span>الصفوف (الأول، الثاني، الثالث) تعتبر بكج بسعر 7 دنانير ثابتة للصف الواحد بغض النظر عن الخدمة المختارة.</span>
+                              <span>الصفوف (الأول، الثاني، الثالث) تعتبر بكج بسعر 7 دنانير ثابتة للصف الواحد وتشمل <strong style={{ color: '#1e3a8a', fontWeight: 'bold' }}>خطة وتحضير وتحليل</strong>.</span>
                             </div>
                           )}
 
@@ -838,7 +945,7 @@ function OrderForm({ onBack, showToast }: any) {
               <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '1.5rem', marginBottom: '1.5rem' }}>
                 <p style={{ color: '#ef4444', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>الرجاء إكمال/تصحيح الأخطاء التالية للمتابعة:</p>
                 <ul style={{ color: '#ef4444', margin: 0, paddingRight: '1.5rem', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                  {teachers.some(t => !t.name) && <li>إدخال أسماء جميع المعلمين</li>}
+                  {teachers.some(t => !t.name || t.name.trim().split(/\s+/).length < 2) && <li>إدخال أسماء جميع المعلمين (يجب أن يكون كل اسم من مقطعين على الأقل)</li>}
                   {teachers.some(t => t.items.length === 0) && <li>إضافة مادة واحدة على الأقل لكل معلم</li>}
                   {teachers.some(t => t.items.some(i => i.grades.length === 0)) && <li>اختيار صف واحد على الأقل لكل مادة مضافة</li>}
                 </ul>
@@ -855,17 +962,30 @@ function OrderForm({ onBack, showToast }: any) {
         {step === 3 && (
           <div className="form-section fade-in">
             <h3 style={{ color: 'var(--text-light)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>معلومات العميل</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2.5rem', fontSize: '0.95rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>الاسم:</strong> {customerInfo.name}</div>
-                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>المدرسة:</strong> {customerInfo.schoolName}</div>
-                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>العنوان:</strong> {customerInfo.governorate} - {customerInfo.district}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem', marginBottom: '2.5rem', fontSize: '0.95rem', background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', border: '1px solid var(--border)' }}>
+              <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>الاسم:</strong> {customerInfo.name}</div>
+              <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>الهاتف:</strong> {customerInfo.phone}</div>
+              {customerInfo.phone2 && <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>هاتف بديل:</strong> {customerInfo.phone2}</div>}
+              <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>المدرسة:</strong> {customerInfo.schoolName}</div>
+              <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>نوع المدرسة:</strong> {customerInfo.schoolType}</div>
+              <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>نوع التعليم:</strong> {customerInfo.directorate}</div>
+              <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>المحافظة:</strong> {customerInfo.governorate}</div>
+              {customerInfo.district && customerInfo.district !== 'إضافة' && (
+                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>اللواء / المنطقة:</strong> {customerInfo.district}</div>
+              )}
+              {customerInfo.district === 'إضافة' && customerInfo.otherDistrict && (
+                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>اللواء / المنطقة:</strong> {customerInfo.otherDistrict}</div>
+              )}
+              <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #cbd5e1', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                <strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>طريقة الاستلام:</strong>
+                {customerInfo.deliveryType === 'delivery' ? ' توصيل 🚚' : ' استلام من المكتبة 🏪'}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>الهاتف:</strong> {customerInfo.phone}</div>
-                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>المديرية:</strong> {customerInfo.directorate || 'التعليم الخاص'}</div>
-                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>الاستلام:</strong> {customerInfo.deliveryType === 'delivery' ? 'توصيل' : 'استلام من المكتبة'}</div>
-              </div>
+              {customerInfo.deliveryType === 'delivery' && customerInfo.schoolLocation && (
+                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>عنوان المدرسة:</strong> {customerInfo.schoolDeliveryGov} - {customerInfo.schoolLocation}</div>
+              )}
+              {customerInfo.deliveryType === 'delivery' && customerInfo.homeLocation && (
+                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>عنوان البيت:</strong> {customerInfo.homeDeliveryGov} - {customerInfo.homeLocation}</div>
+              )}
             </div>
 
             <h3 style={{ color: 'var(--text-light)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>تفاصيل الطلب</h3>
@@ -952,8 +1072,9 @@ function OrderForm({ onBack, showToast }: any) {
               )}
             </p>
 
-            <a href="tel:0777775306" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.8rem', background: '#f8fafc', padding: '1rem 2rem', borderRadius: '16px', color: 'var(--primary)', textDecoration: 'none', fontWeight: 'bold', marginBottom: '3rem', fontSize: '1.05rem', border: '1px solid var(--border)' }}>
-              للملاحظات يرجى الاتصال على هذا الرقم: <span dir="ltr" style={{ color: '#dc2626' }}>0777775306</span> 📞
+            <a href="tel:0777775306" className="phone-contact" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', color: 'var(--primary)', textDecoration: 'none', fontWeight: 'bold', marginBottom: '3rem', fontSize: '1.1rem', border: '1px solid var(--border)' }}>
+              <span>للملاحظات يرجى الاتصال على هذا الرقم:</span>
+              <span dir="ltr" style={{ color: '#dc2626', fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📞 0777775306</span>
             </a>
 
             <div>
