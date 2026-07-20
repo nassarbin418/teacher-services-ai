@@ -392,7 +392,7 @@ function OrderForm({ onBack, showToast }: any) {
   };
 
   const addTeacher = () => setTeachers([...teachers, { id: `t${Date.now()}`, name: '', items: [] }]);
-  const removeTeacher = (id: string) => { if (teachers.length > 1) setTeachers(teachers.filter(t => t.id !== id)); };
+  // const removeTeacher = (id: string) => { if (teachers.length > 1) setTeachers(teachers.filter(t => t.id !== id)); };
   const updateTeacherName = (id: string, name: string) => setTeachers(teachers.map(t => t.id === id ? { ...t, name } : t));
 
   const toggleSubjectForTeacher = (teacherId: string, subjectName: string) => {
@@ -706,7 +706,7 @@ function OrderForm({ onBack, showToast }: any) {
               </button>
             </div>
             
-            {teachers.map((teacher, index) => (
+            {teachers.map((teacher) => (
               <div key={teacher.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '2rem', marginBottom: '2rem', position: 'relative' }}>
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ fontWeight: 'bold', color: 'var(--primary)', display: 'block', marginBottom: '0.5rem', fontSize: '1.1rem' }}>اسم المعلم:</label>
