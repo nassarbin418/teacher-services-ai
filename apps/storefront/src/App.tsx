@@ -288,9 +288,9 @@ function InquiryScreen({ onBack, showToast }: any) {
       <div style={{ background: 'white', padding: '2.5rem 2rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '2rem' }}>
         <h2 style={{ marginBottom: '1.5rem', color: 'var(--primary)', fontSize: '1.8rem', fontWeight: 'bold' }}>الاستعلام عن الطلبات</h2>
         <p style={{ color: 'var(--text-light)', marginBottom: '1rem', fontSize: '1.05rem' }}>أدخل رقم الهاتف الذي استخدمته عند تسجيل الطلب:</p>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <input type="tel" placeholder="رقم الهاتف..." value={phone} onChange={e => setPhone(e.target.value.replace(/[^0-9+]/g, ''))} maxLength={15} style={{ flex: 1, padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border)', fontSize: '1.1rem', textAlign: 'right' }} dir={phone ? 'ltr' : 'rtl'} />
-          <button onClick={handleSearch} disabled={loading} style={{ background: '#f1f5f9', color: 'var(--primary)', border: 'none', padding: '0 2.5rem', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <input type="tel" placeholder="رقم الهاتف..." value={phone} onChange={e => setPhone(e.target.value.replace(/[^0-9+]/g, ''))} maxLength={15} style={{ flex: '1 1 250px', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border)', fontSize: '1.1rem', textAlign: 'right' }} dir={phone ? 'ltr' : 'rtl'} />
+          <button onClick={handleSearch} disabled={loading} style={{ flex: '1 1 150px', background: '#f1f5f9', color: 'var(--primary)', border: 'none', padding: '1rem 2.5rem', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
             {loading ? 'جاري البحث...' : <><SearchIcon size={20} /> بحث</>}
           </button>
         </div>
@@ -608,14 +608,39 @@ function OrderForm({ onBack, showToast }: any) {
               </div>
               <div className="form-group">
                 <label className="form-label" style={{ textAlign: 'right' }}>اللواء / المنطقة <span style={{ color: 'red' }}>*</span></label>
-                <SearchableSelect 
-                  options={customerInfo.governorate ? locations[customerInfo.governorate] : []} 
-                  value={customerInfo.district} 
-                  onChange={(val: string) => setCustomerInfo({...customerInfo, district: val, otherDistrict: ''})} 
-                  placeholder="ابحث لاختيار أو إضافة لواء..." 
-                  disabled={!customerInfo.governorate} 
-                  allowAdd={true} 
-                />
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
+                  <div style={{ flex: 1 }}>
+                    <SearchableSelect 
+                      options={customerInfo.governorate ? locations[customerInfo.governorate] : []} 
+                      value={customerInfo.district === 'إضافة' ? '' : customerInfo.district} 
+                      onChange={(val: string) => setCustomerInfo({...customerInfo, district: val, otherDistrict: ''})} 
+                      placeholder="ابحث لاختيار لواء..." 
+                      disabled={!customerInfo.governorate} 
+                      allowAdd={false} 
+                    />
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setCustomerInfo({...customerInfo, district: customerInfo.district === 'إضافة' ? '' : 'إضافة', otherDistrict: ''})}
+                    disabled={!customerInfo.governorate}
+                    style={{
+                      background: customerInfo.district === 'إضافة' ? 'var(--primary)' : 'white',
+                      color: customerInfo.district === 'إضافة' ? 'white' : 'var(--primary)',
+                      border: '1px solid var(--primary)',
+                      borderRadius: '8px',
+                      padding: '0 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: customerInfo.governorate ? 'pointer' : 'not-allowed',
+                      opacity: customerInfo.governorate ? 1 : 0.6,
+                      minHeight: '42px'
+                    }}
+                    title="إضافة لواء جديد"
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
               </div>
               {customerInfo.district === 'إضافة' && (
                 <div className="form-group">
