@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import templateUrl from '../../../../packages/shared/excel/template.xlsx?url';
 
 // --- إعدادات خلايا الإكسل ---
 // قم بتغيير أسماء الخلايا (A1, B2) بناءً على ملفك الحقيقي
@@ -21,9 +22,32 @@ const GRID_MAP: Record<string, Record<string, string>> = {
 
 export const exportOrderToExcel = async (order: any, orderItems: any[]) => {
   try {
-    // 1. تحميل القالب من المجلد العام (يجب أن تضع template.xlsx في مجلد public)
-    const response = await fetch(`${import.meta.env.BASE_URL}template.xlsx`);
+    // 1. تحميل القالب مباشرة عبر استيراد Vite (لا يحتاج لمجلد public)
+    const response = await fetch(templateUrl);
     const arrayBuffer = await response.arrayBuffer();
+
+    // -- مؤقت: طباعة خلايا الإكسل في الكونسول لتسهيل تعبئة GRID_MAP --
+    try {
+      const tempWb = new ExcelJS.Workbook();
+      await tempWb.xlsx.load(arrayBuffer);
+      const ws = tempWb.worksheets[0];
+      const results: any = {};
+      ws.eachRow((row) => {
+        row.eachCell((cell) => {
+          if (cell.text) {
+            const val = cell.text.trim();
+            if (['عربي', 'دين', 'علوم', 'رياضيات', 'E', 'اجتماعيات', 'اول', 'ثاني', 'ثالث', 'اسم المعلم', 'اسم المدرسة', 'اسم المديرية', 'رقم الهاتف'].some(k => val.includes(k))) {
+              results[val] = cell.address;
+            }
+          }
+        });
+      });
+      console.log('--- أرقام خلايا الإكسل من القالب ---');
+      console.log(JSON.stringify(results, null, 2));
+    } catch(e) {
+      console.error('Error parsing template for cells', e);
+    }
+    // ----------------------------------------------------------------
 
     // تجميع المواد حسب اسم المعلم لإنشاء ملف منفصل لكل معلم
     const itemsByTeacher = orderItems.reduce((acc: any, item: any) => {
@@ -79,9 +103,9 @@ export const exportOrderToExcel = async (order: any, orderItems: any[]) => {
     }
     
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error exporting excel:', error);
-    alert('حدث خطأ أثناء إنشاء ملف الإكسل. الرجاء التأكد من وجود ملف template.xlsx في مجلد public');
+    alert(`حدث خطأ أثناء إنشاء ملف الإكسل: ${error.message || error}`);
     return false;
   }
 };
