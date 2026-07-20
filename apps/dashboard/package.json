@@ -14,6 +14,7 @@
     "react-router-dom": "^6.22.0",
     "lucide-react": "^0.323.0",
     "exceljs": "^4.4.0",
+    "@supabase/supabase-js": "^2.39.3",
     "@teacher-services/shared": "*"
   },
   "devDependencies": {
