@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import excelTemplateUrl from '../../../../packages/shared/excel/excel_template/__تعديل ورقة الطلب_.xlsx?url';
+import excelTemplateUrl from '../../../../packages/shared/excel/excel_template/order_template.xlsx?url';
 
 export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
   try {
