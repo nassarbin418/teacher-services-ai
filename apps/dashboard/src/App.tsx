@@ -638,6 +638,7 @@ function App() {
                 <table className="orders-table">
                   <thead>
                     <tr>
+                      <th>رقم الطلب</th>
                       <th>تاريخ الطلب</th>
                       <th>اسم العميل</th>
                       <th>رقم الهاتف</th>
@@ -653,6 +654,7 @@ function App() {
                     {currentOrders.map((order) => (
                       <React.Fragment key={order.id}>
                         <tr className={expandedOrder === order.id ? 'expanded-row' : ''}>
+                          <td style={{ fontWeight: 'bold', color: 'var(--primary)' }}>#{order.id}</td>
                           <td dir="ltr" style={{ textAlign: 'right' }}>{new Date(order.created_at).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}</td>
                           <td>{order.customer_name}</td>
                           <td dir="ltr" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
