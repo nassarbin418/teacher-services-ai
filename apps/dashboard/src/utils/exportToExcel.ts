@@ -1,39 +1,71 @@
 import ExcelJS from 'exceljs';
+import excelTemplateUrl from '../../../../packages/shared/excel/excel_template/__تعديل ورقة الطلب_.xlsx?url';
 
 export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
   try {
+    // 1. Fetch and load the exact Excel template file
+    const response = await fetch(excelTemplateUrl);
+    const arrayBuffer = await response.arrayBuffer();
     const workbook = new ExcelJS.Workbook();
-    // Enable RTL view for Arabic
-    const worksheet = workbook.addWorksheet('تفاصيل الطلب', {
-      views: [{ rightToLeft: true }]
-    });
+    await workbook.xlsx.load(arrayBuffer);
+    const worksheet = workbook.worksheets[0];
 
-    // Formatting defaults
-    worksheet.properties.defaultColWidth = 25;
-    worksheet.properties.defaultRowHeight = 24;
+    // Ensure Right-To-Left view for Arabic sheet
+    worksheet.views = [{ rightToLeft: true }];
 
-    // Columns width adjustments for wide spacious layout
-    worksheet.getColumn(1).width = 30; // Column 1: الاسم / نوع التعليم / اسم المعلم
-    worksheet.getColumn(2).width = 25; // Column 2: الهاتف 1 / المحافظة / المادة
-    worksheet.getColumn(3).width = 32; // Column 3: هاتف 2 (الرقم البديل) / اللواء / الصف
-    worksheet.getColumn(4).width = 42; // Column 4: المدرسة / موقع المدرسة / نوع الخدمة
-    worksheet.getColumn(5).width = 35; // Column 5: نوع المدرسة / موقع البيت / السعر
-    
-    // Function to set header styles
-    const setHeaderStyle = (cell: any) => {
-      cell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1E293B' } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-      cell.alignment = { vertical: 'middle', horizontal: 'center' };
-      cell.border = {
-        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-      };
+    // Format createdAt date & time string with ' | ' separator
+    let formattedCreatedAt = '—';
+    if (order.created_at) {
+      const d = new Date(order.created_at);
+      const dateStr = d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric' });
+      const timeStr = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+      formattedCreatedAt = `${dateStr} | ${timeStr}`;
+    }
+
+    // Service Type Label Mapper
+    const serviceTypeName = (type: number | string) => {
+      if (type === 0 || type === '0') return 'خطة فصلية';
+      if (type === 1 || type === '1') return 'تحضير يومي';
+      if (type === 2 || type === '2') return 'بكج كامل (خطة وتحضير وتحليل)';
+      return String(type || 'غير محدد');
     };
 
+    // --- 1. Fill Order Info (معلومات الطلب) ---
+    // Cell A3: Order ID
+    const cellA3 = worksheet.getCell('A3');
+    cellA3.value = `#${order.id || ''}`;
+
+    // Cell B3: Order Creation Date
+    const cellB3 = worksheet.getCell('B3');
+    cellB3.value = formattedCreatedAt;
+
+    // --- 2. Fill Customer Info (معلومات العميل) ---
+    // Row 7 (Values 1): الاسم | المدرسة | اللواء/المنطقة | نوع التعليم | نوع المدرسة
+    worksheet.getCell('A7').value = order.customer_name || '';
+    worksheet.getCell('B7').value = order.school_name || '';
+    worksheet.getCell('C7').value = order.district || '—';
+    worksheet.getCell('D7').value = order.directorate || '—';
+    worksheet.getCell('E7').value = order.school_type || '—';
+
+    // Row 10 (Values 2): المحافظة | موقع المدرسة | موقع البيت | الهاتف 1 | الهاتف 2
+    worksheet.getCell('A10').value = order.governorate || '—';
+    worksheet.getCell('B10').value = order.school_location || 'غير متوفر';
+    worksheet.getCell('C10').value = order.home_location || 'غير متوفر';
+    
+    const cellD10 = worksheet.getCell('D10');
+    cellD10.value = order.phone ? String(order.phone) : '';
+    cellD10.numFmt = '@';
+
+    const cellE10 = worksheet.getCell('E10');
+    cellE10.value = order.phone2 ? String(order.phone2) : 'غير متوفر';
+    cellE10.numFmt = '@';
+
+    // --- 3. Fill Teachers & Items (تفاصيل المعلمين والمواد) ---
+    const items = itemsParam || order.order_items || order.items || [];
+    
+    // Style helper for data cells using Segoe UI font matching Windows Excel template
     const setDataStyle = (cell: any) => {
-      cell.font = { name: 'Arial', size: 11, color: { argb: 'FF334155' } };
+      cell.font = { name: 'Segoe UI', size: 11, color: { argb: 'FF0F172A' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
       cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       cell.border = {
@@ -44,253 +76,161 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       };
     };
 
-    const setSectionTitle = (cell: any, title: string) => {
-      const rowIndex = cell.row;
-      worksheet.mergeCells(rowIndex, 1, rowIndex, 5);
-      
-      const titleCell = worksheet.getCell(rowIndex, 1);
-      titleCell.value = `  📌  ${title}`;
-      titleCell.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF1E3A8A' } };
-      titleCell.alignment = { vertical: 'middle', horizontal: 'right' };
-      
-      const lightBgColor = 'FFE0E7FF'; // Soft light pastel indigo background
-      const borderColor = 'FFC7D2FE';  // Soft indigo border
-      
-      for (let c = 1; c <= 5; c++) {
-        const cCell = worksheet.getCell(rowIndex, c);
-        cCell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: lightBgColor }
-        };
-        cCell.border = {
-          top: { style: 'thin', color: { argb: borderColor } },
-          bottom: { style: 'thin', color: { argb: borderColor } },
-          left: { style: 'thin', color: { argb: borderColor } },
-          right: { style: 'thin', color: { argb: borderColor } }
-        };
+    const safeMerge = (startRow: number, startCol: number, endRow: number, endCol: number) => {
+      try {
+        worksheet.mergeCells(startRow, startCol, endRow, endCol);
+      } catch (e) {
+        // Cell range is already merged in template - safe to proceed
       }
     };
 
-    const applyMergedBoxStyle = (
+    // Items start at Row 14
+    let currentRowIndex = 14;
+
+    // --- CLEAN SLATE FOR DYNAMIC SECTION ---
+    // 1. Unmerge template's fixed boxes so we don't get merge conflicts when drawing dynamically
+    try { worksheet.unMergeCells('A19:B19'); } catch (e) {}
+    try { worksheet.unMergeCells('D19:E19'); } catch (e) {}
+    try { worksheet.unMergeCells('A20:B22'); } catch (e) {}
+    try { worksheet.unMergeCells('D20:E22'); } catch (e) {}
+
+    if (items && items.length > 0) {
+      items.forEach((item: any, index: number) => {
+        const r = 14 + index;
+        if (index > 0) {
+          worksheet.getRow(r).height = 24;
+        }
+
+        const cellA = worksheet.getCell(`A${r}`); cellA.value = item.teacher_name || ''; setDataStyle(cellA);
+        const cellB = worksheet.getCell(`B${r}`); cellB.value = item.subject || ''; setDataStyle(cellB);
+        const cellC = worksheet.getCell(`C${r}`); cellC.value = item.grade || ''; setDataStyle(cellC);
+        const cellD = worksheet.getCell(`D${r}`); cellD.value = serviceTypeName(item.service_type); setDataStyle(cellD);
+        const cellE = worksheet.getCell(`E${r}`); cellE.value = `${item.price || 0} د.أ`; setDataStyle(cellE);
+      });
+      currentRowIndex = 14 + items.length;
+    } else {
+      const emptyCell = worksheet.getCell('A14');
+      emptyCell.value = 'لا توجد مواد';
+      safeMerge(14, 1, 14, 5);
+      setDataStyle(emptyCell);
+      currentRowIndex = 15;
+    }
+
+    // 2. Clear all formatting and text from currentRowIndex to row 35 to erase the old template footprint
+    for (let r = currentRowIndex; r <= Math.max(35, currentRowIndex + 10); r++) {
+      for (let c = 1; c <= 5; c++) {
+        const cell = worksheet.getCell(r, c);
+        cell.value = '';
+        cell.fill = { type: 'pattern', pattern: 'none' };
+        cell.border = {};
+      }
+    }
+
+    // --- 4. Delivery Cost & Total Amount Rows (Dynamic placement) ---
+    const isDelivery = String(order.delivery_type) === '1' || Number(order.delivery_cost) > 0;
+    const deliveryCostVal = Number(order.delivery_cost) || (isDelivery ? 3 : 0);
+
+    if (isDelivery || deliveryCostVal > 0) {
+      // Write Delivery Cost at currentRowIndex
+      const deliveryCellLabel = worksheet.getCell(`D${currentRowIndex}`);
+      deliveryCellLabel.value = 'أجور التوصيل:';
+      deliveryCellLabel.font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FF1F2937' } };
+      deliveryCellLabel.alignment = { horizontal: 'left', vertical: 'middle' };
+      deliveryCellLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      deliveryCellLabel.border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+
+      const deliveryCellVal = worksheet.getCell(`E${currentRowIndex}`);
+      deliveryCellVal.value = `${deliveryCostVal} د.أ`;
+      deliveryCellVal.font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FF1F2937' } };
+      deliveryCellVal.alignment = { horizontal: 'center', vertical: 'middle' };
+      deliveryCellVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      deliveryCellVal.border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+
+      currentRowIndex++;
+    }
+
+    // Write Total Amount at currentRowIndex
+    const totalCellLabel = worksheet.getCell(`D${currentRowIndex}`);
+    totalCellLabel.value = 'الإجمالي:';
+    totalCellLabel.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF1E293B' } };
+    totalCellLabel.alignment = { horizontal: 'left', vertical: 'middle' };
+    totalCellLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+    totalCellLabel.border = { top: { style: 'thin', color: { argb: 'FF94A3B8' } }, left: { style: 'thin', color: { argb: 'FF94A3B8' } }, bottom: { style: 'thin', color: { argb: 'FF94A3B8' } }, right: { style: 'thin', color: { argb: 'FF94A3B8' } } };
+
+    const totalCellVal = worksheet.getCell(`E${currentRowIndex}`);
+    totalCellVal.value = `${order.total_amount || 0} د.أ`;
+    totalCellVal.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF059669' } };
+    totalCellVal.alignment = { horizontal: 'center', vertical: 'middle' };
+    totalCellVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+    totalCellVal.border = { top: { style: 'thin', color: { argb: 'FF94A3B8' } }, left: { style: 'thin', color: { argb: 'FF94A3B8' } }, bottom: { style: 'thin', color: { argb: 'FF94A3B8' } }, right: { style: 'thin', color: { argb: 'FF94A3B8' } } };
+
+    // Increment currentRowIndex by 2 (1 for Total row, + 1 for empty space row)
+    currentRowIndex += 2;
+
+    // --- 5. Delivery / Pickup Highlight Boxes (Dynamic placement after total) ---
+    const boxHeaderRow = Math.max(19, currentRowIndex);
+    const boxStartRow = boxHeaderRow + 1;
+    const boxEndRow = boxHeaderRow + 3;
+
+    // Right Header (Cols 1 & 2 in RTL view): توصيل
+    safeMerge(boxHeaderRow, 1, boxHeaderRow, 2);
+    const headerDeliveryCell = worksheet.getCell(boxHeaderRow, 1);
+    headerDeliveryCell.value = 'توصيل';
+    headerDeliveryCell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF1E293B' } };
+    headerDeliveryCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerDeliveryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+    
+    // Apply borders to the merged header cells (both Col 1 and Col 2)
+    worksheet.getCell(boxHeaderRow, 1).border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+    worksheet.getCell(boxHeaderRow, 2).border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+
+    // Left Header (Cols 4 & 5 in RTL view): استلام من المكتبة
+    safeMerge(boxHeaderRow, 4, boxHeaderRow, 5);
+    const headerPickupCell = worksheet.getCell(boxHeaderRow, 4);
+    headerPickupCell.value = 'استلام من المكتبة';
+    headerPickupCell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF1E293B' } };
+    headerPickupCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerPickupCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+    
+    // Apply borders to the merged header cells (both Col 4 and Col 5)
+    worksheet.getCell(boxHeaderRow, 4).border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+    worksheet.getCell(boxHeaderRow, 5).border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+
+    const styleExistingBox = (
       startRow: number,
       startCol: number,
       endRow: number,
       endCol: number,
       isSelected: boolean
     ) => {
-      worksheet.mergeCells(startRow, startCol, endRow, endCol);
-      const fillColor = isSelected ? 'FFFEF08A' : 'FFF8FAFC'; // Soft light pastel yellow if selected, light slate if unselected
-      const borderColor = isSelected ? 'FFEAB308' : 'FFCBD5E1'; // Soft amber vs light slate border
+      safeMerge(startRow, startCol, endRow, endCol);
+
+      const fillColor = isSelected ? 'FFFFF275' : 'FFFFFFFF';
+      const borderColor = isSelected ? 'FFE5B800' : 'FFCBD5E1';
 
       for (let r = startRow; r <= endRow; r++) {
         for (let c = startCol; c <= endCol; c++) {
           const cell = worksheet.getCell(r, c);
-          cell.value = ''; // Empty inside the box as requested
-          cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: fillColor }
-          };
+          cell.value = '';
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
           cell.border = {
-            top: { style: 'medium', color: { argb: borderColor } },
-            bottom: { style: 'medium', color: { argb: borderColor } },
-            left: { style: 'medium', color: { argb: borderColor } },
-            right: { style: 'medium', color: { argb: borderColor } }
+            top: { style: 'thin', color: { argb: borderColor } },
+            bottom: { style: 'thin', color: { argb: borderColor } },
+            left: { style: 'thin', color: { argb: borderColor } },
+            right: { style: 'thin', color: { argb: borderColor } }
           };
         }
       }
     };
 
-    // --- 1. Order Info Section (معلومات الطلب) ---
-    const orderTitleRow = worksheet.addRow([]);
-    setSectionTitle(orderTitleRow.getCell(1), 'معلومات الطلب');
-    worksheet.addRow([]);
+    // Right Box: Cols 1 & 2 (Delivery on RIGHT)
+    styleExistingBox(boxStartRow, 1, boxEndRow, 2, isDelivery);
 
-    const orderHeaders = worksheet.addRow(['رقم الطلب', 'تاريخ الطلب', '', '', '']);
-    setHeaderStyle(orderHeaders.getCell(1));
-    setHeaderStyle(orderHeaders.getCell(2));
+    // Left Box: Cols 4 & 5 (Pickup on LEFT)
+    styleExistingBox(boxStartRow, 4, boxEndRow, 5, !isDelivery);
 
-    const formattedCreatedAt = order.created_at
-      ? new Date(order.created_at).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })
-      : '—';
-
-    const orderValues = worksheet.addRow([
-      `#${order.id || ''}`,
-      formattedCreatedAt,
-      '', '', ''
-    ]);
-    setDataStyle(orderValues.getCell(1));
-    setDataStyle(orderValues.getCell(2));
-
-    worksheet.addRow([]);
-    worksheet.addRow([]);
-
-    // --- 2. Customer Info Section (معلومات العميل) ---
-    const custTitleRow = worksheet.addRow([]);
-    setSectionTitle(custTitleRow.getCell(1), 'معلومات العميل');
-    worksheet.addRow([]);
-
-    // Headers Row 1
-    const infoHeaders1 = worksheet.addRow(['الاسم', 'الهاتف 1', 'الهاتف 2 (الرقم البديل)', 'المدرسة', 'نوع المدرسة']);
-    infoHeaders1.eachCell(setHeaderStyle);
-    
-    // Values Row 1
-    const infoValues1 = worksheet.addRow([
-      order.customer_name || '',
-      order.phone || '',
-      order.phone2 || 'غير متوفر',
-      order.school_name || '',
-      order.school_type || '—'
-    ]);
-    infoValues1.eachCell(setDataStyle);
-
-    worksheet.addRow([]);
-
-    // Headers Row 2
-    const infoHeaders2 = worksheet.addRow(['نوع التعليم', 'المحافظة', 'اللواء / المنطقة', 'موقع المدرسة', 'موقع البيت']);
-    infoHeaders2.eachCell(setHeaderStyle);
-    
-    // Values Row 2
-    const infoValues2 = worksheet.addRow([
-      order.directorate || '—',
-      order.governorate || '—',
-      order.district || '—',
-      order.school_location || 'غير متوفر',
-      order.home_location || 'غير متوفر'
-    ]);
-    infoValues2.eachCell(setDataStyle);
-
-    worksheet.addRow([]);
-    worksheet.addRow([]);
-
-    // --- 3. Teachers and Subjects Section (تفاصيل المعلمين والمواد) ---
-    const itemsTitleRow = worksheet.addRow([]);
-    setSectionTitle(itemsTitleRow.getCell(1), 'تفاصيل المعلمين والمواد');
-    worksheet.addRow([]);
-
-    // Items Headers
-    const itemsHeaders = worksheet.addRow(['اسم المعلم', 'المادة', 'الصف', 'نوع الخدمة', 'السعر']);
-    itemsHeaders.eachCell(setHeaderStyle);
-
-    const serviceTypeName = (type: number | string) => {
-      if (type === 0 || type === '0') return 'خطة فصلية';
-      if (type === 1 || type === '1') return 'تحضير يومي';
-      if (type === 2 || type === '2') return 'بكج كامل (خطة وتحضير وتحليل)';
-      return String(type || 'غير محدد');
-    };
-
-    // Add Items
-    const items = itemsParam || order.order_items || order.items || [];
-    if (items && items.length > 0) {
-      items.forEach((item: any) => {
-        const itemRow = worksheet.addRow([
-          item.teacher_name || '',
-          item.subject || '',
-          item.grade || '',
-          serviceTypeName(item.service_type),
-          `${item.price || 0} د.أ`
-        ]);
-        itemRow.eachCell(setDataStyle);
-      });
-    } else {
-      const emptyRow = worksheet.addRow(['لا توجد مواد']);
-      worksheet.mergeCells(emptyRow.number, 1, emptyRow.number, 5);
-      emptyRow.getCell(1).alignment = { horizontal: 'center' };
-      setDataStyle(emptyRow.getCell(1));
-    }
-    
-    // Add Delivery Cost Row if Delivery
-    const isDelivery = String(order.delivery_type) === '1' || Number(order.delivery_cost) > 0;
-    const deliveryCostVal = Number(order.delivery_cost) || (isDelivery ? 3 : 0);
-
-    if (isDelivery || deliveryCostVal > 0) {
-      const deliveryRow = worksheet.addRow(['', '', '', 'أجور التوصيل:', `${deliveryCostVal} د.أ`]);
-      deliveryRow.getCell(4).font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1F2937' } };
-      deliveryRow.getCell(4).alignment = { horizontal: 'left' };
-      deliveryRow.getCell(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-      deliveryRow.getCell(5).font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1F2937' } };
-      deliveryRow.getCell(5).alignment = { horizontal: 'center' };
-      deliveryRow.getCell(5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-      deliveryRow.getCell(4).border = {
-        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-      };
-      deliveryRow.getCell(5).border = {
-        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-      };
-    }
-    
-    // Add Total Row
-    const totalRow = worksheet.addRow(['', '', '', 'الإجمالي:', `${order.total_amount || 0} د.أ`]);
-    totalRow.getCell(4).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1E293B' } };
-    totalRow.getCell(4).alignment = { horizontal: 'left' };
-    totalRow.getCell(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
-    totalRow.getCell(5).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF059669' } };
-    totalRow.getCell(5).alignment = { horizontal: 'center' };
-    totalRow.getCell(5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
-    totalRow.getCell(4).border = {
-      top: { style: 'thin', color: { argb: 'FF94A3B8' } },
-      left: { style: 'thin', color: { argb: 'FF94A3B8' } },
-      bottom: { style: 'thin', color: { argb: 'FF94A3B8' } },
-      right: { style: 'thin', color: { argb: 'FF94A3B8' } }
-    };
-    totalRow.getCell(5).border = {
-      top: { style: 'thin', color: { argb: 'FF94A3B8' } },
-      left: { style: 'thin', color: { argb: 'FF94A3B8' } },
-      bottom: { style: 'thin', color: { argb: 'FF94A3B8' } },
-      right: { style: 'thin', color: { argb: 'FF94A3B8' } }
-    };
-
-    // --- 4. Delivery Option Highlight Boxes (في أسفل الجدول) ---
-    worksheet.addRow([]);
-    worksheet.addRow([]);
-
-    // Header Row above boxes (توصيل يمين ، استلام من المكتبة شمال)
-    const deliveryHeadersRow = worksheet.addRow(['توصيل', '', '', 'استلام من المكتبة', '']);
-    worksheet.mergeCells(deliveryHeadersRow.number, 1, deliveryHeadersRow.number, 2);
-    worksheet.mergeCells(deliveryHeadersRow.number, 4, deliveryHeadersRow.number, 5);
-
-    const setBoxTitleStyle = (startCol: number, endCol: number, cell: any) => {
-      cell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1E293B' } };
-      cell.alignment = { vertical: 'middle', horizontal: 'center' };
-      for (let c = startCol; c <= endCol; c++) {
-        const headerCell = worksheet.getCell(deliveryHeadersRow.number, c);
-        headerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-        headerCell.border = {
-          top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-          bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-          left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-          right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-        };
-      }
-    };
-    setBoxTitleStyle(1, 2, deliveryHeadersRow.getCell(1));
-    setBoxTitleStyle(4, 5, deliveryHeadersRow.getCell(4));
-
-    // Large Box Rows below header (spanning 3 rows and 2 columns each)
-    const boxRow1 = worksheet.addRow(['', '', '', '', '']);
-    worksheet.addRow(['', '', '', '', '']);
-    const boxRow3 = worksheet.addRow(['', '', '', '', '']);
-
-    const startR = boxRow1.number;
-    const endR = boxRow3.number;
-
-    // Right Box: توصيل (Columns 1 & 2)
-    applyMergedBoxStyle(startR, 1, endR, 2, isDelivery);
-
-    // Left Box: استلام من المكتبة (Columns 4 & 5)
-    applyMergedBoxStyle(startR, 4, endR, 5, !isDelivery);
-
-    // Generate Excel File buffer and trigger download
+    // Generate Excel File buffer and trigger download in browser
     const buffer = await workbook.xlsx.writeBuffer();
-    
-    // Trigger download in browser
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -298,13 +238,10 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     a.download = `طلب_${order.id || 'جديد'}.xlsx`;
     document.body.appendChild(a);
     a.click();
-    
-    // Clean up
-    window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
 
   } catch (error) {
-    console.error('Error generating Excel file:', error);
-    alert('حدث خطأ أثناء تصدير ملف الإكسل');
+    console.error('Error generating excel from template:', error);
   }
 };
