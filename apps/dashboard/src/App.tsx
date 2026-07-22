@@ -403,13 +403,24 @@ function App() {
     const formattedDate = order.created_at ? new Date(order.created_at).toLocaleDateString('ar-EG') : '';
     const isoDate = order.created_at ? order.created_at.slice(0, 10) : '';
 
-    const matchesSearch =
-      order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toString().includes(searchTerm) ||
-      order.phone?.includes(searchTerm) ||
-      order.phone2?.includes(searchTerm) ||
-      isoDate.includes(searchTerm) ||
-      formattedDate.includes(searchTerm);
+    const term = searchTerm.trim().toLowerCase();
+    const cleanTerm = term.replace(/^#/, '');
+
+    const matchesItems = order.order_items && Array.isArray(order.order_items) && order.order_items.some((item: any) =>
+      item.teacher_name?.toLowerCase().includes(term) ||
+      item.subject?.toLowerCase().includes(term) ||
+      item.grade?.toLowerCase().includes(term)
+    );
+
+    const matchesSearch = !term ||
+      order.customer_name?.toLowerCase().includes(term) ||
+      order.id.toString().includes(cleanTerm) ||
+      (`#${order.id}`).includes(term) ||
+      order.phone?.includes(term) ||
+      order.phone2?.includes(term) ||
+      isoDate.includes(term) ||
+      formattedDate.includes(term) ||
+      matchesItems;
 
     const matchesStatus = statusFilter === 'all' || order.status.toString() === statusFilter;
     const matchesDate = !dateFilter || isoDate === dateFilter;
