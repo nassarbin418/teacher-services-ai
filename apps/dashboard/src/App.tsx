@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
-import { Search, Download, ChevronDown, ChevronUp, Clock, Package, Bell, BookOpen, Plus, Trash2, CheckCircle2 } from 'lucide-react';
-import { exportOrderToExcel } from './utils/exportExcel';
+import { Search, Download, ChevronDown, ChevronUp, Clock, Package, Bell, BookOpen, Plus, Trash2, CheckCircle2, Calendar } from 'lucide-react';
+import { exportOrderToExcel } from './utils/exportToExcel';
 import './index.css';
 
 function App() {
@@ -12,13 +12,22 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
 
   // Subjects State
   const [subjects, setSubjects] = useState<any[]>([]);
+  const [subjectGrades, setSubjectGrades] = useState<Record<string, string[]>>({});
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [newSubject, setNewSubject] = useState({ name: '', plan_price: 2, prep_price: 3 });
   const [editingSubject, setEditingSubject] = useState<string | number | null>(null);
+  const [expandedSubject, setExpandedSubject] = useState<string | number | null>(null);
+
+  const AVAILABLE_GRADES = [
+    'الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس',
+    'السابع', 'الثامن', 'التاسع', 'العاشر', 'الحادي عشر (أكاديمي)', 'الثاني عشر (أكاديمي)'
+  ];
 
   // Orders Pagination State
   const [ordersPage, setOrdersPage] = useState(1);
@@ -45,7 +54,7 @@ function App() {
       const { data, error } = await supabase
         .from('orders')
         .select(`*, order_items (*)`)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: true });
       if (error) throw error;
       setOrders(data || []);
     } catch (err) {
@@ -58,9 +67,22 @@ function App() {
   const fetchSubjects = async () => {
     try {
       setLoadingSubjects(true);
-      const { data, error } = await supabase.from('subjects').select('*');
+      const { data, error } = await supabase.from('subjects').select('*').order('name', { ascending: true });
       if (error) throw error;
-      setSubjects(data || []);
+      const sorted = (data || []).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+      setSubjects(sorted);
+
+      const { data: gradesData, error: gradesError } = await supabase.from('subject_grades').select('*');
+      if (!gradesError && gradesData) {
+        const gradesMap: Record<string, string[]> = {};
+        gradesData.forEach(g => {
+          if (g.is_available !== false) {
+            if (!gradesMap[g.subject_id]) gradesMap[g.subject_id] = [];
+            gradesMap[g.subject_id].push(g.grade_name);
+          }
+        });
+        setSubjectGrades(gradesMap);
+      }
     } catch (err) {
       console.error('Error fetching subjects:', err);
       showToast('فشل جلب المواد، تأكد من قاعدة البيانات', 'error');
@@ -115,6 +137,38 @@ function App() {
     }
   };
 
+  const playNotificationSound = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.4);
+
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+      gain2.gain.setValueAtTime(0.2, ctx.currentTime + 0.1);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(ctx.currentTime + 0.1);
+      osc2.stop(ctx.currentTime + 0.5);
+    } catch (e) {
+      console.log('Audio playback error:', e);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
     fetchSubjects();
@@ -132,10 +186,7 @@ function App() {
     const notifChannel = supabase
       .channel('notif_channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload) => {
-        try {
-          const audio = new Audio('/notification.mp3');
-          audio.play().catch(e => console.log('Audio play failed:', e));
-        } catch (e) { }
+        playNotificationSound();
 
         const newNotif = payload.new;
         setNotifications(prev => [newNotif, ...prev]);
@@ -153,8 +204,17 @@ function App() {
     };
   }, []);
 
-  const updateOrderStatus = async (orderId: number, newStatus: number) => {
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [searchTerm, statusFilter, dateFilter, sortOrder]);
+
+  const updateOrderStatus = async (orderId: number, newStatus: number, deliveryType: number, deliveryPerson: string | null) => {
     try {
+      if (newStatus === 2 && deliveryType === 1 && (!deliveryPerson || deliveryPerson.trim() === '')) {
+        showToast('يجب إدخال اسم المندوب في حال كان الطلب قيد التوصيل', 'error');
+        return;
+      }
+
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -163,7 +223,7 @@ function App() {
       if (error) throw error;
 
       // Insert Notification
-      const statuses = ['جديد', 'قيد المعالجة', 'تم الانتهاء', 'مرفوض', 'مرفوض من المعلم'];
+      const statuses = ['جديد', 'قيد المعالجة', 'قيد التوصيل', 'مرفوض', 'مرفوض من المعلم'];
       await supabase.from('notifications').insert({
         message: `تم تغيير حالة الطلب #${orderId} إلى ${statuses[newStatus] || 'مجهول'}`,
         type: 'update',
@@ -197,11 +257,25 @@ function App() {
   // Subjects Management functions
   const handleAddSubject = async () => {
     if (!newSubject.name) return showToast('الرجاء إدخال اسم المادة', 'error');
+    if (newSubject.plan_price === 0 && newSubject.prep_price === 0) {
+      return showToast('لازم تعبي الاسعار او واحدة على الاقل', 'error');
+    }
+    
     try {
       const { data, error } = await supabase.from('subjects').insert(newSubject).select();
       if (error) throw error;
       if (data && data.length > 0) {
-        setSubjects([...subjects, data[0]]);
+        const addedSub = data[0];
+        setSubjects(prev => [...prev, addedSub].sort((a, b) => a.name.localeCompare(b.name, 'ar')));
+
+        // Insert default grades for the new subject
+        const gradesToInsert = AVAILABLE_GRADES.map(g => ({
+          subject_id: addedSub.id,
+          grade_name: g,
+          is_available: true
+        }));
+        await supabase.from('subject_grades').upsert(gradesToInsert, { onConflict: 'subject_id,grade_name' });
+        setSubjectGrades(prev => ({ ...prev, [addedSub.id]: AVAILABLE_GRADES }));
       }
       setNewSubject({ name: '', plan_price: 2, prep_price: 3 });
       showToast('تمت إضافة المادة بنجاح', 'success');
@@ -211,11 +285,18 @@ function App() {
     }
   };
 
-  const handleEditSubject = async (subjectId: string | number, field: string, value: any) => {
+  const handleEditSubject = async (subjectId: string | number, field: string, value: any, currentSubject: any) => {
     try {
+      if (field === 'plan_price' && value === 0 && currentSubject.prep_price === 0) {
+        return showToast('لازم تعبي الاسعار او واحدة على الاقل', 'error');
+      }
+      if (field === 'prep_price' && value === 0 && currentSubject.plan_price === 0) {
+        return showToast('لازم تعبي الاسعار او واحدة على الاقل', 'error');
+      }
+
       const { error } = await supabase.from('subjects').update({ [field]: value }).eq('id', subjectId);
       if (error) throw error;
-      setSubjects(subjects.map(s => s.id === subjectId ? { ...s, [field]: value } : s));
+      setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, [field]: value } : s).sort((a, b) => a.name.localeCompare(b.name, 'ar')));
       showToast('تم التعديل بنجاح', 'success');
     } catch (err) {
       console.error(err);
@@ -250,17 +331,99 @@ function App() {
     }
   };
 
+  const toggleGrade = async (subjectId: string | number, gradeName: string) => {
+    try {
+      const current = subjectGrades[subjectId] || [];
+      const hasGrade = current.includes(gradeName);
+
+      // Validation: Ensure at least one grade remains selected for the subject
+      if (hasGrade && current.length === 1) {
+        showToast('يجب اختيار صف واحد على الأقل للمادة', 'error');
+        return;
+      }
+      
+      const newStatus = !hasGrade;
+      
+      const { error } = await supabase.from('subject_grades').upsert(
+        { subject_id: subjectId, grade_name: gradeName, is_available: newStatus },
+        { onConflict: 'subject_id,grade_name' }
+      );
+
+      if (error) throw error;
+
+      if (newStatus) {
+        setSubjectGrades({ ...subjectGrades, [subjectId]: [...current, gradeName] });
+      } else {
+        setSubjectGrades({ ...subjectGrades, [subjectId]: current.filter(g => g !== gradeName) });
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('خطأ في تحديث الصفوف', 'error');
+    }
+  };
+
+  const checkIsDuplicateOrder = (order: any, allOrders: any[]) => {
+    if (!order || !order.phone || !order.order_items || order.order_items.length === 0) return false;
+
+    const cleanPhone = order.phone.trim();
+    const otherOrders = allOrders.filter(o =>
+      o.id !== order.id &&
+      o.phone &&
+      o.phone.trim() === cleanPhone &&
+      o.status !== 3 &&
+      o.status !== 4 &&
+      o.order_items &&
+      o.order_items.length > 0
+    );
+
+    if (otherOrders.length === 0) return false;
+
+    for (const item of order.order_items) {
+      const teacher = (item.teacher_name || '').trim().toLowerCase();
+      const subject = (item.subject || '').trim().toLowerCase();
+      const grade = (item.grade || '').trim().toLowerCase();
+
+      for (const otherOrder of otherOrders) {
+        for (const otherItem of otherOrder.order_items) {
+          const oTeacher = (otherItem.teacher_name || '').trim().toLowerCase();
+          const oSubject = (otherItem.subject || '').trim().toLowerCase();
+          const oGrade = (otherItem.grade || '').trim().toLowerCase();
+
+          if (teacher === oTeacher && subject === oSubject && grade === oGrade) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  };
+
   const filteredOrders = orders.filter(order => {
+    const formattedDate = order.created_at ? new Date(order.created_at).toLocaleDateString('ar-EG') : '';
+    const isoDate = order.created_at ? order.created_at.slice(0, 10) : '';
+
     const matchesSearch =
       order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.id.toString().includes(searchTerm) ||
-      order.phone?.includes(searchTerm);
+      order.phone?.includes(searchTerm) ||
+      order.phone2?.includes(searchTerm) ||
+      isoDate.includes(searchTerm) ||
+      formattedDate.includes(searchTerm);
+
     const matchesStatus = statusFilter === 'all' || order.status.toString() === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesDate = !dateFilter || isoDate === dateFilter;
+
+    return matchesSearch && matchesStatus && matchesDate;
+  }).sort((a, b) => {
+    const timeA = new Date(a.created_at).getTime();
+    const timeB = new Date(b.created_at).getTime();
+    return sortOrder === 'asc' ? timeA - timeB : timeB - timeA;
   });
 
-  const currentOrders = filteredOrders.slice((ordersPage - 1) * ordersPerPage, ordersPage * ordersPerPage);
-  const totalOrdersPages = Math.ceil(filteredOrders.length / ordersPerPage);
+  const totalOrdersPages = Math.max(1, Math.ceil(filteredOrders.length / ordersPerPage));
+  const activeOrdersPage = ordersPage > totalOrdersPages ? 1 : ordersPage;
+  const currentOrders = filteredOrders.slice((activeOrdersPage - 1) * ordersPerPage, activeOrdersPage * ordersPerPage);
 
   const renderToast = () => {
     if (!toast) return null;
@@ -404,7 +567,7 @@ function App() {
                 <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#f59e0b', margin: 0 }}>{orders.filter(o => o.status === 1).length}</p>
               </div>
               <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #10b981' }}>
-                <h3 style={{ color: 'var(--text-light)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>تم الانتهاء</h3>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>قيد التوصيل</h3>
                 <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981', margin: 0 }}>{orders.filter(o => o.status === 2).length}</p>
               </div>
               <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #ef4444' }}>
@@ -413,25 +576,53 @@ function App() {
               </div>
             </div>
 
-            <div className="filters-bar">
-              <div className="search-box">
+            <div className="filters-bar" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="search-box" style={{ flex: '1 1 250px' }}>
                 <Search size={20} color="#64748b" />
                 <input
                   type="text"
-                  placeholder="ابحث بالاسم، رقم الطلب، الهاتف..."
+                  placeholder="ابحث بالاسم، رقم الطلب، الهاتف، التاريخ..."
                   maxLength={50}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                <Calendar size={18} color="#64748b" />
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '0.9rem', cursor: 'pointer' }}
+                  title="تصفية حسب تاريخ محدد"
+                />
+                {dateFilter && (
+                  <button
+                    onClick={() => setDateFilter('')}
+                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}
+                    title="مسح تصفية التاريخ"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
               <div className="filter-select" style={{ display: 'flex', alignItems: 'center' }}>
                 <select className="status-filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ height: '100%' }}>
                   <option value="all">جميع الحالات</option>
                   <option value="0">جديد</option>
                   <option value="1">قيد المعالجة</option>
-                  <option value="2">تم الانتهاء</option>
+                  <option value="2">قيد التوصيل</option>
                   <option value="3">مرفوض</option>
                   <option value="4">مرفوض من المعلم</option>
+                </select>
+              </div>
+
+              <div className="filter-select" style={{ display: 'flex', alignItems: 'center' }}>
+                <select className="status-filter" value={sortOrder} onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')} style={{ height: '100%' }}>
+                  <option value="asc">الترتيب: من الأقدم للأحدث ⬆</option>
+                  <option value="desc">الترتيب: من الأحدث للأقدم ⬇</option>
                 </select>
               </div>
             </div>
@@ -464,7 +655,29 @@ function App() {
                         <tr className={expandedOrder === order.id ? 'expanded-row' : ''}>
                           <td dir="ltr" style={{ textAlign: 'right' }}>{new Date(order.created_at).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}</td>
                           <td>{order.customer_name}</td>
-                          <td dir="ltr" style={{ textAlign: 'right' }}>{order.phone}</td>
+                          <td dir="ltr" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <span>{order.phone}</span>
+                            {checkIsDuplicateOrder(order, orders) && (
+                              <span
+                                style={{
+                                  marginRight: '0.4rem',
+                                  background: '#fee2e2',
+                                  color: '#dc2626',
+                                  border: '1px solid #fca5a5',
+                                  padding: '0.15rem 0.4rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.2rem'
+                                }}
+                                title="يوجد طلب آخر نشط بنفس رقم الهاتف يحتوي على نفس المعلم والمادة والصف"
+                              >
+                                ⚠️ طلب مكرر
+                              </span>
+                            )}
+                          </td>
                           <td>
                             <span className={`badge ${order.delivery_type === 1 ? 'delivery' : 'pickup'}`}>
                               {order.delivery_type === 1 ? 'توصيل' : 'استلام'}
@@ -495,15 +708,24 @@ function App() {
                           <td>
                             <select
                               value={order.status}
-                              onChange={(e) => updateOrderStatus(order.id, parseInt(e.target.value))}
+                              onChange={(e) => updateOrderStatus(order.id, parseInt(e.target.value), order.delivery_type, order.delivery_person)}
                               className="status-select"
-                              style={{ padding: '0.4rem', border: '1px solid #ccc', borderRadius: '4px', outline: 'none' }}
+                              style={{
+                                padding: '0.4rem 0.6rem',
+                                borderRadius: '6px',
+                                outline: 'none',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                background: order.status === 0 ? '#fee2e2' : order.status === 1 ? '#fef3c7' : order.status === 2 ? '#d1fae5' : '#f1f5f9',
+                                color: order.status === 0 ? '#dc2626' : order.status === 1 ? '#b45309' : order.status === 2 ? '#047857' : '#64748b',
+                                border: `1px solid ${order.status === 0 ? '#fca5a5' : order.status === 1 ? '#fde68a' : order.status === 2 ? '#a7f3d0' : '#cbd5e1'}`
+                              }}
                             >
-                              <option value="0">جديد</option>
-                              <option value="1">قيد المعالجة</option>
-                              <option value="2">تم الانتهاء</option>
-                              <option value="3">مرفوض</option>
-                              <option value="4">مرفوض من المعلم</option>
+                              <option value="0" style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 'bold' }}>جديد</option>
+                              <option value="1" style={{ background: '#fef3c7', color: '#b45309' }}>قيد المعالجة</option>
+                              <option value="2" style={{ background: '#d1fae5', color: '#047857' }}>قيد التوصيل</option>
+                              <option value="3" style={{ background: '#f1f5f9', color: '#64748b' }}>مرفوض</option>
+                              <option value="4" style={{ background: '#f1f5f9', color: '#64748b' }}>مرفوض من المعلم</option>
                             </select>
                           </td>
                           <td>
@@ -535,8 +757,15 @@ function App() {
                                   <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>معلومات العميل</h4>
                                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem 1rem', fontSize: '0.9rem' }}>
                                     <div><strong>الاسم:</strong> {order.customer_name}</div>
-                                    <div><strong>الهاتف 1:</strong> <span dir="ltr">{order.phone}</span></div>
-                                    {order.phone2 && <div><strong>الهاتف 2:</strong> <span dir="ltr">{order.phone2}</span></div>}
+                                    <div>
+                                      <strong>الهاتف 1:</strong> <span dir="ltr">{order.phone || 'غير متوفر'}</span>
+                                      {checkIsDuplicateOrder(order, orders) && (
+                                        <span style={{ marginRight: '0.5rem', background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', display: 'inline-block' }}>
+                                          ⚠️ طلب مكرر (يوجد طلب سابق يحتوي على نفس المواد والمعلم)
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div><strong>الهاتف 2 (الرقم البديل):</strong> <span dir="ltr">{order.phone2 || 'غير متوفر'}</span></div>
                                     <div><strong>المدرسة:</strong> {order.school_name}</div>
                                     <div><strong>نوع المدرسة:</strong> {order.school_type || '—'}</div>
                                     <div><strong>نوع التعليم:</strong> {order.directorate || '—'}</div>
@@ -573,6 +802,16 @@ function App() {
                                           <td>{item.price} د.أ</td>
                                         </tr>
                                       ))}
+                                      {order.delivery_type === 1 && (
+                                        <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
+                                          <td colSpan={4} style={{ textAlign: 'left' }}>أجور التوصيل:</td>
+                                          <td>{order.delivery_cost || 3} د.أ</td>
+                                        </tr>
+                                      )}
+                                      <tr style={{ background: '#f1f5f9', fontWeight: 'bold', fontSize: '1rem' }}>
+                                        <td colSpan={4} style={{ textAlign: 'left', color: 'var(--primary)' }}>الإجمالي:</td>
+                                        <td style={{ color: '#10b981' }}>{order.total_amount} د.أ</td>
+                                      </tr>
                                     </tbody>
                                   </table>
                                 ) : (
@@ -591,17 +830,17 @@ function App() {
               {totalOrdersPages > 1 && (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '1.5rem' }}>
                   <button
-                    disabled={ordersPage === 1}
-                    onClick={() => setOrdersPage(ordersPage - 1)}
-                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', cursor: ordersPage === 1 ? 'not-allowed' : 'pointer' }}
+                    disabled={activeOrdersPage === 1}
+                    onClick={() => setOrdersPage(activeOrdersPage - 1)}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', cursor: activeOrdersPage === 1 ? 'not-allowed' : 'pointer' }}
                   >
                     السابق
                   </button>
-                  <span>صفحة {ordersPage} من {totalOrdersPages}</span>
+                  <span>صفحة {activeOrdersPage} من {totalOrdersPages}</span>
                   <button
-                    disabled={ordersPage === totalOrdersPages}
-                    onClick={() => setOrdersPage(ordersPage + 1)}
-                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', cursor: ordersPage === totalOrdersPages ? 'not-allowed' : 'pointer' }}
+                    disabled={activeOrdersPage === totalOrdersPages}
+                    onClick={() => setOrdersPage(activeOrdersPage + 1)}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', cursor: activeOrdersPage === totalOrdersPages ? 'not-allowed' : 'pointer' }}
                   >
                     التالي
                   </button>
@@ -627,9 +866,9 @@ function App() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text)', fontWeight: 'bold' }}>سعر الخطة الفصلية</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text)', fontWeight: 'bold' }}>سعر الخطة</label>
                 <input
-                  type="number" step="0.5" min="0" max="100" placeholder="سعر الخطة الفصلية"
+                  type="number" step="0.5" min="0" max="100" placeholder="سعر الخطة"
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ccc' }}
                   value={newSubject.plan_price} onChange={e => setNewSubject({ ...newSubject, plan_price: parseFloat(e.target.value) || 0 })}
                 />
@@ -655,8 +894,9 @@ function App() {
               <thead>
                 <tr>
                   <th>اسم المادة</th>
-                  <th>سعر الخطة الفصلية</th>
-                  <th>سعر التحضير اليومي</th>
+                  <th>سعر الخطة</th>
+                  <th>سعر التحضير</th>
+                  <th>الصفوف</th>
                   <th>الإجراءات</th>
                 </tr>
               </thead>
@@ -669,11 +909,12 @@ function App() {
                   </td></tr>
                 ) : (
                   subjects.map(s => (
-                    <tr key={s.id}>
+                    <React.Fragment key={s.id}>
+                      <tr>
                       <td>
                         {editingSubject === s.id ? (
                           <input type="text" defaultValue={s.name} maxLength={50} onBlur={(e) => {
-                            if (e.target.value !== s.name) handleEditSubject(s.id, 'name', e.target.value);
+                            if (e.target.value !== s.name) handleEditSubject(s.id, 'name', e.target.value, s);
                             setEditingSubject(null);
                           }} autoFocus style={{ padding: '0.25rem', width: '100%' }} />
                         ) : (
@@ -684,9 +925,11 @@ function App() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <input
                             type="number" step="0.5" min="0" max="100" defaultValue={s.plan_price}
+                            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                             onBlur={(e) => {
-                              const val = parseFloat(e.target.value);
-                              if (val !== s.plan_price && !isNaN(val)) handleEditSubject(s.id, 'plan_price', val);
+                              let val = parseFloat(e.target.value);
+                              if (isNaN(val)) val = 0;
+                              if (val !== s.plan_price) handleEditSubject(s.id, 'plan_price', val, s);
                             }}
                             style={{ padding: '0.25rem', width: '80px', border: '1px solid #ccc', borderRadius: '4px' }}
                           />
@@ -697,9 +940,11 @@ function App() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <input
                             type="number" step="0.5" min="0" max="100" defaultValue={s.prep_price}
+                            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                             onBlur={(e) => {
-                              const val = parseFloat(e.target.value);
-                              if (val !== s.prep_price && !isNaN(val)) handleEditSubject(s.id, 'prep_price', val);
+                              let val = parseFloat(e.target.value);
+                              if (isNaN(val)) val = 0;
+                              if (val !== s.prep_price) handleEditSubject(s.id, 'prep_price', val, s);
                             }}
                             style={{ padding: '0.25rem', width: '80px', border: '1px solid #ccc', borderRadius: '4px' }}
                           />
@@ -707,12 +952,46 @@ function App() {
                         </div>
                       </td>
                       <td>
+                        <button onClick={() => setExpandedSubject(expandedSubject === s.id ? null : s.id)} style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                          الصفوف ({subjectGrades[s.id]?.length || 0})
+                        </button>
+                      </td>
+                      <td>
                         <button onClick={() => handleDeleteSubject(s)} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' }}>
                           <Trash2 size={18} />
                         </button>
                       </td>
                     </tr>
-                  ))
+                    {expandedSubject === s.id && (
+                      <tr>
+                        <td colSpan={5} style={{ background: '#f8fafc', padding: '1.5rem' }}>
+                          <h4 style={{ margin: '0 0 1rem 0', color: 'var(--primary)' }}>الصفوف المتاحة للمادة: {s.name}</h4>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                            {AVAILABLE_GRADES.map(grade => {
+                              const isSelected = (subjectGrades[s.id] || []).includes(grade);
+                              return (
+                                <label key={grade} style={{
+                                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                  padding: '0.5rem 1rem', background: isSelected ? '#dbeafe' : 'white',
+                                  border: `1px solid ${isSelected ? '#3b82f6' : '#cbd5e1'}`,
+                                  borderRadius: '8px', cursor: 'pointer', userSelect: 'none'
+                                }}>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={isSelected}
+                                    onChange={() => toggleGrade(s.id, grade)}
+                                    style={{ width: '16px', height: '16px' }}
+                                  />
+                                  <span style={{ color: isSelected ? '#1e40af' : 'var(--text)' }}>{grade}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))
                 )}
               </tbody>
             </table>

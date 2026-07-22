@@ -148,12 +148,16 @@ function MultiSelect({ options, selected, onChange, placeholder, hasError }: any
 
       {isOpen && (
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: 'white', border: '1px solid var(--border)', borderRadius: '8px', marginTop: '4px', maxHeight: '250px', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-          {options.map((opt: string) => (
-            <label key={opt} style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: 'black', gap: '0.5rem', margin: 0 }} onClick={e => e.stopPropagation()}>
-              <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggleOption(opt)} style={{ width: '16px', height: '16px' }} />
-              {opt}
-            </label>
-          ))}
+          {options.length === 0 ? (
+            <div style={{ padding: '0.75rem', color: '#6b7280', textAlign: 'center' }}>لا توجد صفوف متاحة لهذه المادة</div>
+          ) : (
+            options.map((opt: string) => (
+              <label key={opt} style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: 'black', gap: '0.5rem', margin: 0 }} onClick={e => e.stopPropagation()}>
+                <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggleOption(opt)} style={{ width: '16px', height: '16px' }} />
+                {opt}
+              </label>
+            ))
+          )}
         </div>
       )}
     </div>
@@ -165,10 +169,10 @@ export default function App() {
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const toastTimeout = React.useRef<any>(null);
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info', duration = 3000) => {
     setToast({ message, type });
     if (toastTimeout.current) clearTimeout(toastTimeout.current);
-    toastTimeout.current = setTimeout(() => setToast(null), 3000);
+    toastTimeout.current = setTimeout(() => setToast(null), duration);
   };
 
   return (
@@ -182,8 +186,9 @@ export default function App() {
           position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
           background: toast.type === 'error' ? '#fee2e2' : toast.type === 'success' ? '#dcfce7' : '#e0f2fe',
           color: toast.type === 'error' ? '#ef4444' : toast.type === 'success' ? '#10b981' : '#0ea5e9',
-          padding: '1rem 2rem', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          zIndex: 9999, display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold'
+          padding: '1rem 2rem', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.15)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold',
+          whiteSpace: 'pre-line', maxWidth: '90vw', lineHeight: '1.5'
         }} className="fade-in">
           {toast.type === 'error' && <span style={{ fontSize: '1.2rem' }}>⚠️</span>}
           {toast.type === 'success' && <CheckCircle size={20} />}
@@ -403,6 +408,7 @@ function InquiryScreen({ onBack, showToast }: any) {
 function OrderForm({ onBack, showToast }: any) {
   const [step, setStep] = useState(1);
   const [dbSubjects, setDbSubjects] = useState<any[]>([]);
+  const [subjectGradesMap, setSubjectGradesMap] = useState<Record<string | number, string[]>>({});
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: '', phone: '', phone2: '', schoolName: '', schoolType: '', directorate: '', governorate: '', district: '', otherDistrict: '', deliveryType: 'pickup', schoolDeliveryGov: '', schoolLocation: '', homeDeliveryGov: '', homeLocation: ''
   });
@@ -411,10 +417,33 @@ function OrderForm({ onBack, showToast }: any) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [locations, setLocations] = useState<Record<string, string[]>>({});
 
+  const fetchFreshData = async () => {
+    try {
+      const { data: subData } = await supabase.from('subjects').select('*').order('name', { ascending: true });
+      if (subData) {
+        const sorted = subData.sort((a: any, b: any) => a.name.localeCompare(b.name, 'ar'));
+        setDbSubjects(sorted);
+      }
+
+      const { data: gradesData } = await supabase.from('subject_grades').select('*');
+      if (gradesData) {
+        const map: Record<string, string[]> = {};
+        gradesData.forEach((g: any) => {
+          if (g.is_available !== false) {
+            const key = String(g.subject_id);
+            if (!map[key]) map[key] = [];
+            map[key].push(g.grade_name);
+          }
+        });
+        setSubjectGradesMap(map);
+      }
+    } catch (e) {
+      console.error('Error fetching fresh subjects/grades:', e);
+    }
+  };
+
   useEffect(() => {
-    supabase.from('subjects').select('*').then(({ data }) => {
-      if (data) setDbSubjects(data);
-    });
+    fetchFreshData();
 
     supabase.from('locations').select('*').then(({ data }) => {
       if (data) {
@@ -426,6 +455,15 @@ function OrderForm({ onBack, showToast }: any) {
         setLocations(map);
       }
     });
+
+    const channel = supabase.channel('storefront_fresh_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'subjects' }, fetchFreshData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'subject_grades' }, fetchFreshData)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleCustomerChange = (e: any) => {
@@ -446,20 +484,24 @@ function OrderForm({ onBack, showToast }: any) {
   };
 
   const addTeacher = () => setTeachers([...teachers, { id: `t${Date.now()}`, name: '', items: [] }]);
-  // const removeTeacher = (id: string) => { if (teachers.length > 1) setTeachers(teachers.filter(t => t.id !== id)); };
+  const removeTeacher = (id: string) => { if (teachers.length > 1) setTeachers(teachers.filter(t => t.id !== id)); };
   const updateTeacherName = (id: string, name: string) => setTeachers(teachers.map(t => t.id === id ? { ...t, name } : t));
 
   const toggleSubjectForTeacher = (teacherId: string, subjectName: string) => {
-    const subject = dbSubjects.find(s => s.name === subjectName);
+    const subject = dbSubjects.find((s: any) => s.name === subjectName);
     if (!subject) return;
 
-    setTeachers(teachers.map(t => {
+    const planP = Number(subject.plan_price) || 0;
+    const prepP = Number(subject.prep_price) || 0;
+    const defaultServiceType = (planP > 0 && prepP > 0) ? 'both' : (planP > 0 ? 'plan' : 'prep');
+
+    setTeachers(prevTeachers => prevTeachers.map(t => {
       if (t.id !== teacherId) return t;
       const existing = t.items.find(i => i.subjectId === subject.id);
       if (existing) return { ...t, items: t.items.filter(i => i.subjectId !== subject.id) };
       const newItemId = Math.random().toString();
       setExpandedItems(prev => [...prev, newItemId]);
-      return { ...t, items: [...t.items, { id: newItemId, subjectId: subject.id, grades: [], serviceType: 'both' }] };
+      return { ...t, items: [...t.items, { id: newItemId, subjectId: subject.id, grades: [], serviceType: defaultServiceType }] };
     }));
   };
 
@@ -478,12 +520,16 @@ function OrderForm({ onBack, showToast }: any) {
         const subject = dbSubjects.find(s => s.id === item.subjectId);
         if (!subject) return;
 
+        const effectiveServiceType = (subject.plan_price > 0 && subject.prep_price > 0)
+          ? item.serviceType
+          : (subject.plan_price > 0 ? 'plan' : 'prep');
+
         item.grades.forEach(g => {
           if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
             total += 7; // Fixed package price
           } else {
-            if (item.serviceType === 'plan' || item.serviceType === 'both') total += subject.plan_price;
-            if (item.serviceType === 'prep' || item.serviceType === 'both') total += subject.prep_price;
+            if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') total += subject.plan_price;
+            if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') total += subject.prep_price;
           }
         });
       });
@@ -582,8 +628,10 @@ function OrderForm({ onBack, showToast }: any) {
   const isDeliveryValid = customerInfo.deliveryType === 'pickup' || (customerInfo.deliveryType === 'delivery' && customerInfo.schoolDeliveryGov && customerInfo.schoolLocation && customerInfo.homeDeliveryGov && customerInfo.homeLocation);
   const isPrivate = customerInfo.directorate === 'التعليم الخاص';
   const isNameValid = customerInfo.name && customerInfo.name.trim().split(/\s+/).length >= 2;
+  const isSchoolNameValid = customerInfo.schoolName && customerInfo.schoolName.trim().split(/\s+/).length >= 3;
   const isPhoneValid = customerInfo.phone && (!customerInfo.phone.startsWith('07') || customerInfo.phone.length === 10);
-  const isStep1Valid = isNameValid && isPhoneValid && customerInfo.schoolName && customerInfo.schoolType && customerInfo.directorate && customerInfo.governorate && (isPrivate || (customerInfo.district && (customerInfo.district !== 'إضافة' || customerInfo.otherDistrict))) && isDeliveryValid;
+  const isPhone2Valid = customerInfo.phone2 && (!customerInfo.phone2.startsWith('07') || customerInfo.phone2.length === 10);
+  const isStep1Valid = isNameValid && isSchoolNameValid && isPhoneValid && isPhone2Valid && customerInfo.schoolType && customerInfo.directorate && customerInfo.governorate && (isPrivate || (customerInfo.district && (customerInfo.district !== 'إضافة' || customerInfo.otherDistrict))) && isDeliveryValid;
   const isStep2Valid = teachers.every(t => t.name && t.name.trim().split(/\s+/).length >= 2 && t.items.length > 0 && t.items.every(i => i.grades.length > 0));
   const isStep3Valid = true;
 
@@ -650,8 +698,8 @@ function OrderForm({ onBack, showToast }: any) {
                 <input className="form-input" type="tel" name="phone" value={customerInfo.phone} onChange={handleCustomerChange} maxLength={15} placeholder="079XXXXXXX" dir={customerInfo.phone ? 'ltr' : 'rtl'} style={{ textAlign: 'right' }} />
               </div>
               <div className="form-group">
-                <label className="form-label" style={{ textAlign: 'right' }}>رقم هاتف آخر (اختياري)</label>
-                <input className="form-input" type="tel" name="phone2" value={customerInfo.phone2} onChange={handleCustomerChange} maxLength={15} placeholder="رقم هاتف بديل للتواصل" dir={customerInfo.phone2 ? 'ltr' : 'rtl'} style={{ textAlign: 'right' }} />
+                <label className="form-label" style={{ textAlign: 'right' }}>رقم هاتف آخر <span style={{ color: 'red' }}>*</span></label>
+                <input className="form-input" type="tel" name="phone2" value={customerInfo.phone2} onChange={handleCustomerChange} maxLength={15} placeholder="079XXXXXXX (رقم هاتف بديل)" dir={customerInfo.phone2 ? 'ltr' : 'rtl'} style={{ textAlign: 'right' }} />
               </div>
             </div>
             {/* نوع التعليم */}
@@ -766,7 +814,7 @@ function OrderForm({ onBack, showToast }: any) {
               <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
                 <div style={{ background: '#e0f2fe', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
                   <Truck size={20} />
-                  <span><strong>ملاحظة:</strong> سوف يتم توصيل طلبك خلال 24 - 48 ساعة.</span>
+                  <span><strong>ملاحظة:</strong> سوف يتم توصيل طلبك خلال 48 - 72 ساعة.</span>
                 </div>
                 <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--primary)', fontSize: '1.1rem' }}>تفاصيل العنوان الدقيق للتوصيل</h3>
                 <div className="form-group">
@@ -811,9 +859,11 @@ function OrderForm({ onBack, showToast }: any) {
                 <p style={{ color: '#ef4444', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>الرجاء إكمال/تصحيح الحقول التالية للمتابعة:</p>
                 <ul style={{ color: '#ef4444', margin: 0, paddingRight: '1.5rem', fontSize: '0.9rem' }}>
                   {!isNameValid && <li>الاسم الكامل (يجب أن يتكون من مقطعين على الأقل)</li>}
-                  {!customerInfo.phone && <li>رقم الهاتف</li>}
-                  {customerInfo.phone && customerInfo.phone.startsWith('07') && customerInfo.phone.length !== 10 && <li>رقم الهاتف (يجب أن يكون 10 خانات)</li>}
-                  {!customerInfo.schoolName && <li>اسم المدرسة</li>}
+                  {!customerInfo.phone && <li>رقم الهاتف الأساسي</li>}
+                  {customerInfo.phone && customerInfo.phone.startsWith('07') && customerInfo.phone.length !== 10 && <li>رقم الهاتف الأساسي (يجب أن يكون 10 خانات)</li>}
+                  {!customerInfo.phone2 && <li>رقم الهاتف الآخر (البديل إجباري)</li>}
+                  {customerInfo.phone2 && customerInfo.phone2.startsWith('07') && customerInfo.phone2.length !== 10 && <li>رقم الهاتف الآخر (يجب أن يكون 10 خانات)</li>}
+                  {!isSchoolNameValid && <li>اسم المدرسة (يجب أن يتكون من 3 مقاطع على الأقل)</li>}
                   {!customerInfo.schoolType && <li>نوع المدرسة</li>}
                   {!customerInfo.directorate && <li>نوع التعليم</li>}
                   {!customerInfo.governorate && <li>المحافظة</li>}
@@ -838,10 +888,36 @@ function OrderForm({ onBack, showToast }: any) {
               </button>
             </div>
             
-            {teachers.map((teacher) => (
+            {teachers.map((teacher, index) => (
               <div key={teacher.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '2rem', marginBottom: '2rem', position: 'relative' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <label style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '1.1rem' }}>
+                    اسم المعلم {teachers.length > 1 ? `#${index + 1}` : ''}:
+                  </label>
+                  {teachers.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeTeacher(teacher.id)}
+                      style={{
+                        background: '#fef2f2',
+                        color: '#ef4444',
+                        border: '1px solid #fecaca',
+                        padding: '0.4rem 0.8rem',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem'
+                      }}
+                      title="حذف هذا المعلم"
+                    >
+                      <Trash2 size={16} /> حذف المعلم
+                    </button>
+                  )}
+                </div>
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ fontWeight: 'bold', color: 'var(--primary)', display: 'block', marginBottom: '0.5rem', fontSize: '1.1rem' }}>اسم المعلم:</label>
                   <input 
                     type="text" 
                     value={teacher.name} 
@@ -871,13 +947,20 @@ function OrderForm({ onBack, showToast }: any) {
                   const isExpanded = expandedItems.includes(item.id);
                   const hasPackageGrades = item.grades.some(g => ['الأول', 'الثاني', 'الثالث'].includes(g));
                   
+                  const planPrice = subject ? (Number(subject.plan_price) || 0) : 0;
+                  const prepPrice = subject ? (Number(subject.prep_price) || 0) : 0;
+
+                  const effectiveServiceType = subject
+                    ? ((planPrice > 0 && prepPrice > 0) ? item.serviceType : (planPrice > 0 ? 'plan' : 'prep'))
+                    : item.serviceType;
+
                   let subjectTotal = 0;
                   item.grades.forEach(g => {
                     if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
                       subjectTotal += 7;
                     } else if (subject) {
-                      if (item.serviceType === 'plan' || item.serviceType === 'both') subjectTotal += subject.plan_price;
-                      if (item.serviceType === 'prep' || item.serviceType === 'both') subjectTotal += subject.prep_price;
+                      if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') subjectTotal += planPrice;
+                      if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') subjectTotal += prepPrice;
                     }
                   });
 
@@ -899,7 +982,7 @@ function OrderForm({ onBack, showToast }: any) {
                         <div style={{ padding: '1.5rem', borderTop: hasError ? '1px solid #ef4444' : '1px solid var(--border)' }}>
                           <div className="form-group">
                             <label style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.5rem', display: 'block' }}>الصفوف المطلوبة: <span style={{ color: 'red' }}>*</span></label>
-                            <MultiSelect options={GRADES} selected={item.grades} onChange={(val: any) => updateItemGrades(teacher.id, item.id, val)} placeholder="اختر الصفوف..." hasError={hasError} />
+                            <MultiSelect options={(subject && subjectGradesMap[String(subject.id)] && subjectGradesMap[String(subject.id)].length > 0) ? subjectGradesMap[String(subject.id)] : GRADES} selected={item.grades} onChange={(val: any) => updateItemGrades(teacher.id, item.id, val)} placeholder="اختر الصفوف..." hasError={hasError} />
                             {hasError && <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 'bold', textAlign: 'right' }}>يرجى اختيار صف واحد على الأقل للمادة</div>}
                           </div>
 
@@ -907,18 +990,24 @@ function OrderForm({ onBack, showToast }: any) {
                             <div className="form-group" style={{ marginTop: '1.5rem' }}>
                               <label style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '1rem', display: 'block' }}>الخدمة المطلوبة للصف الواحد:</label>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                  <input type="radio" checked={item.serviceType === 'both'} onChange={() => updateItemServiceType(teacher.id, item.id, 'both')} /> 
-                                  خطة + تحضير ({subject.plan_price + subject.prep_price} د.أ)
-                                </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                  <input type="radio" checked={item.serviceType === 'plan'} onChange={() => updateItemServiceType(teacher.id, item.id, 'plan')} /> 
-                                  خطة فقط ({subject.plan_price} د.أ)
-                                </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                  <input type="radio" checked={item.serviceType === 'prep'} onChange={() => updateItemServiceType(teacher.id, item.id, 'prep')} /> 
-                                  تحضير فقط ({subject.prep_price} د.أ)
-                                </label>
+                                {planPrice > 0 && prepPrice > 0 && (
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                    <input type="radio" name={`service_${item.id}`} checked={effectiveServiceType === 'both'} onChange={() => updateItemServiceType(teacher.id, item.id, 'both')} /> 
+                                    خطة + تحضير ({planPrice + prepPrice} د.أ)
+                                  </label>
+                                )}
+                                {planPrice > 0 && (
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                    <input type="radio" name={`service_${item.id}`} checked={effectiveServiceType === 'plan'} onChange={() => updateItemServiceType(teacher.id, item.id, 'plan')} /> 
+                                    خطة فقط ({planPrice} د.أ)
+                                  </label>
+                                )}
+                                {prepPrice > 0 && (
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                    <input type="radio" name={`service_${item.id}`} checked={effectiveServiceType === 'prep'} onChange={() => updateItemServiceType(teacher.id, item.id, 'prep')} /> 
+                                    تحضير فقط ({prepPrice} د.أ)
+                                  </label>
+                                )}
                               </div>
                             </div>
                           )}

@@ -4,5 +4,11 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:dashboard": "npm run dev --workspace=apps/dashboard",
+    "dev:storefront": "npm run dev --workspace=apps/storefront",
+    "build": "npm run build --workspaces --if-present"
+  }
 }
