@@ -576,29 +576,29 @@ function App() {
         {activeTab === 'orders' && (
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #94a3b8', cursor: 'pointer' }} onClick={() => setStatusFilter('all')}>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #94a3b8', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('all')}>
                 <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>إجمالي الطلبات</h3>
-                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{orders.length}</p>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b', margin: 0, marginTop: 'auto' }}>{orders.length}</p>
               </div>
-              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #ef4444', cursor: 'pointer' }} onClick={() => setStatusFilter('0')}>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #ef4444', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('0')}>
                 <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>جديد</h3>
-                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ef4444', margin: 0 }}>{orders.filter(o => o.status === 0).length}</p>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ef4444', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 0).length}</p>
               </div>
-              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #f59e0b', cursor: 'pointer' }} onClick={() => setStatusFilter('1')}>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #f59e0b', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('1')}>
                 <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>في مرحلة الطباعة</h3>
-                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f59e0b', margin: 0 }}>{orders.filter(o => o.status === 1).length}</p>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f59e0b', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 1).length}</p>
               </div>
-              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #9333ea', cursor: 'pointer' }} onClick={() => setStatusFilter('2')}>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #9333ea', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('2')}>
                 <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>في مرحلة التوصيل/الاستلام</h3>
-                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9333ea', margin: 0 }}>{orders.filter(o => o.status === 2).length}</p>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9333ea', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 2).length}</p>
               </div>
-              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #10b981', cursor: 'pointer' }} onClick={() => setStatusFilter('3')}>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #10b981', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('3')}>
                 <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>مكتمل</h3>
-                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: 0 }}>{orders.filter(o => o.status === 3).length}</p>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 3).length}</p>
               </div>
-              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #ef4444', cursor: 'pointer' }} onClick={() => setStatusFilter('4')}>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #ef4444', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('4')}>
                 <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>المرفوضة</h3>
-                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ef4444', margin: 0 }}>{orders.filter(o => o.status === 4 || o.status === 5).length}</p>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ef4444', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 4 || o.status === 5).length}</p>
               </div>
             </div>
 

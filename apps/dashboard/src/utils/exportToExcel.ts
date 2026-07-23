@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import excelTemplateUrl from '../../../../packages/shared/excel/excel_template/order_template.xlsx?url';
+import excelTemplateUrl from '../../../../packages/shared/excel/excel_template/order_template2.xlsx?url';
 
 export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
   try {
@@ -30,6 +30,21 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       return String(type || 'غير محدد');
     };
 
+    // Styling helpers for static cells
+    const setHeaderStyle = (cell: any) => {
+      cell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF000000' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+    };
+
+    const setValueStyle = (cell: any) => {
+      cell.font = { name: 'Segoe UI', size: 11, color: { argb: 'FF0F172A' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+    };
+
     // --- 1. Fill Order Info (معلومات الطلب) ---
     // Cell A3: Order ID
     const cellA3 = worksheet.getCell('A3');
@@ -40,25 +55,12 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     cellB3.value = formattedCreatedAt;
 
     // --- 2. Fill Customer Info (معلومات العميل) ---
-    // Row 7 (Values 1): الاسم | المدرسة | اللواء/المنطقة | نوع التعليم | نوع المدرسة
-    worksheet.getCell('A7').value = order.customer_name || '';
-    worksheet.getCell('B7').value = order.school_name || '';
-    worksheet.getCell('C7').value = order.district || '—';
+    // Row 7 (Values 1): المدرسة | اللواء/المنطقة | الاسم | نوع التعليم | نوع المدرسة
+    worksheet.getCell('A7').value = order.school_name || '';
+    worksheet.getCell('B7').value = order.district || '—';
+    worksheet.getCell('C7').value = order.customer_name || '';
     worksheet.getCell('D7').value = order.directorate || '—';
     worksheet.getCell('E7').value = order.school_type || '—';
-
-    // Row 10 (Values 2): المحافظة | موقع المدرسة | موقع البيت | الهاتف 1 | الهاتف 2
-    worksheet.getCell('A10').value = order.governorate || '—';
-    worksheet.getCell('B10').value = order.school_location || 'غير متوفر';
-    worksheet.getCell('C10').value = order.home_location || 'غير متوفر';
-    
-    const cellD10 = worksheet.getCell('D10');
-    cellD10.value = order.phone ? String(order.phone) : '';
-    cellD10.numFmt = '@';
-
-    const cellE10 = worksheet.getCell('E10');
-    cellE10.value = order.phone2 ? String(order.phone2) : 'غير متوفر';
-    cellE10.numFmt = '@';
 
     // --- 3. Fill Teachers & Items (تفاصيل المعلمين والمواد) ---
     const itemsRaw = itemsParam || order.order_items || order.items || [];
@@ -70,7 +72,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     });
     // Style helper for data cells using Segoe UI font matching Windows Excel template
     const setDataStyle = (cell: any) => {
-      cell.font = { name: 'Segoe UI', size: 11, color: { argb: 'FF0F172A' } };
+      cell.font = { name: 'Segoe UI', size: 11, bold: false, color: { argb: 'FF0F172A' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
       cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       cell.border = {
@@ -89,8 +91,8 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       }
     };
 
-    // Items start at Row 14
-    let currentRowIndex = 14;
+    // Items start at Row 11
+    let currentRowIndex = 11;
 
     // --- CLEAN SLATE FOR DYNAMIC SECTION ---
     // 1. Unmerge template's fixed boxes so we don't get merge conflicts when drawing dynamically
@@ -101,28 +103,28 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     if (items && items.length > 0) {
       items.forEach((item: any, index: number) => {
-        const r = 14 + index;
+        const r = 11 + index;
         if (index > 0) {
           worksheet.getRow(r).height = 24;
         }
 
-        const cellA = worksheet.getCell(`A${r}`); cellA.value = item.teacher_name || ''; setDataStyle(cellA);
-        const cellB = worksheet.getCell(`B${r}`); cellB.value = item.subject || ''; setDataStyle(cellB);
-        const cellC = worksheet.getCell(`C${r}`); cellC.value = item.grade || ''; setDataStyle(cellC);
-        const cellD = worksheet.getCell(`D${r}`); cellD.value = serviceTypeName(item.service_type); setDataStyle(cellD);
-        const cellE = worksheet.getCell(`E${r}`); cellE.value = `${item.price || 0} د.أ`; setDataStyle(cellE);
+        const cellA = worksheet.getCell(`A${r}`); cellA.style = {}; cellA.value = item.teacher_name || ''; setDataStyle(cellA);
+        const cellB = worksheet.getCell(`B${r}`); cellB.style = {}; cellB.value = item.subject || ''; setDataStyle(cellB);
+        const cellC = worksheet.getCell(`C${r}`); cellC.style = {}; cellC.value = item.grade || ''; setDataStyle(cellC);
+        const cellD = worksheet.getCell(`D${r}`); cellD.style = {}; cellD.value = serviceTypeName(item.service_type); setDataStyle(cellD);
+        const cellE = worksheet.getCell(`E${r}`); cellE.style = {}; cellE.value = `${item.price || 0} د.أ`; setDataStyle(cellE);
       });
-      currentRowIndex = 14 + items.length;
+      currentRowIndex = 11 + items.length;
     } else {
-      const emptyCell = worksheet.getCell('A14');
+      const emptyCell = worksheet.getCell('A11');
       emptyCell.value = 'لا توجد مواد';
-      safeMerge(14, 1, 14, 5);
+      safeMerge(11, 1, 11, 5);
       setDataStyle(emptyCell);
-      currentRowIndex = 15;
+      currentRowIndex = 12;
     }
 
     // 2. Clear all formatting and text from currentRowIndex to row 35 to erase the old template footprint
-    for (let r = currentRowIndex; r <= Math.max(35, currentRowIndex + 10); r++) {
+    for (let r = currentRowIndex; r <= Math.max(35, currentRowIndex + 15); r++) {
       for (let c = 1; c <= 5; c++) {
         const cell = worksheet.getCell(r, c);
         cell.value = '';
@@ -169,7 +171,42 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     totalCellVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
     totalCellVal.border = { top: { style: 'thin', color: { argb: 'FF94A3B8' } }, left: { style: 'thin', color: { argb: 'FF94A3B8' } }, bottom: { style: 'thin', color: { argb: 'FF94A3B8' } }, right: { style: 'thin', color: { argb: 'FF94A3B8' } } };
 
-    // Increment currentRowIndex by 2 (1 for Total row, + 1 for empty space row)
+    // Increment currentRowIndex by 1 for empty space row
+    currentRowIndex += 1;
+
+    // --- 4.5 Fill Customer Info Part 2 (Dynamic placement after total) ---
+    // Customer Info 2 Headers
+    const ciHeaders = ['المحافظة', 'موقع المدرسة', 'موقع البيت', 'الهاتف 1', 'الهاتف 2'];
+    worksheet.getRow(currentRowIndex).height = 20;
+    ciHeaders.forEach((text, i) => {
+      const cell = worksheet.getCell(currentRowIndex, i + 1);
+      cell.value = text;
+      cell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF000000' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+    });
+    currentRowIndex++;
+
+    // Customer Info 2 Values
+    const ciValues = [
+      order.governorate || '—',
+      order.school_location || 'غير متوفر',
+      order.home_location || 'غير متوفر',
+      order.phone ? String(order.phone) : '',
+      order.phone2 ? String(order.phone2) : 'غير متوفر'
+    ];
+    worksheet.getRow(currentRowIndex).height = 24;
+    ciValues.forEach((val, i) => {
+      const cell = worksheet.getCell(currentRowIndex, i + 1);
+      cell.value = val;
+      cell.font = { name: 'Segoe UI', size: 11, color: { argb: 'FF0F172A' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      if (i >= 3) cell.numFmt = '@'; // Phone numbers
+      cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+    });
+    
+    // Increment currentRowIndex by 2 (leave a gap before delivery boxes)
     currentRowIndex += 2;
 
     // --- 5. Delivery / Pickup Highlight Boxes (Dynamic placement after total) ---
@@ -226,13 +263,41 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
           };
         }
       }
+
+      if (isSelected) {
+        const topCell = worksheet.getCell(startRow, startCol);
+        topCell.value = '✓';
+        topCell.font = { name: 'Segoe UI', size: 24, bold: true, color: { argb: 'FF000000' } };
+        topCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      }
     };
 
     // Right Box: Cols 1 & 2 (Delivery on RIGHT)
     styleExistingBox(boxStartRow, 1, boxEndRow, 2, isDelivery);
 
+    // Style the Gap: Col 3
+    for (let r = boxHeaderRow; r <= boxEndRow; r++) {
+      const gapCell = worksheet.getCell(r, 3);
+      gapCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+      gapCell.border = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+      };
+    }
+
     // Left Box: Cols 4 & 5 (Pickup on LEFT)
     styleExistingBox(boxStartRow, 4, boxEndRow, 5, !isDelivery);
+
+    // --- 6. Force Apply Static Styles at the Very End ---
+    // This prevents ExcelJS shared style mutation bugs when many items overwrite cells that shared styles with headers in the template
+    ['A2', 'B2', 'A6', 'B6', 'C6', 'D6', 'E6', 'A10', 'B10', 'C10', 'D10', 'E10'].forEach(ref => {
+      setHeaderStyle(worksheet.getCell(ref));
+    });
+    ['A3', 'B3', 'A7', 'B7', 'C7', 'D7', 'E7'].forEach(ref => {
+      setValueStyle(worksheet.getCell(ref));
+    });
 
     // Generate Excel File buffer
     const buffer = await workbook.xlsx.writeBuffer();

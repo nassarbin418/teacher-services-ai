@@ -1,0 +1,99 @@
+Row 1, Col 1 (Cell A1):   📌  معلومات الطلب
+Row 1, Col 2 (Cell B1):   📌  معلومات الطلب
+Row 1, Col 3 (Cell C1):   📌  معلومات الطلب
+Row 1, Col 4 (Cell D1):   📌  معلومات الطلب
+Row 1, Col 5 (Cell E1):   📌  معلومات الطلب
+Row 2, Col 1 (Cell A2): رقم الطلب
+Row 2, Col 2 (Cell B2): تاريخ الطلب
+Row 2, Col 3 (Cell C2): 
+Row 2, Col 4 (Cell D2): 
+Row 2, Col 5 (Cell E2): 
+Row 3, Col 1 (Cell A3): #3
+Row 3, Col 2 (Cell B3): [object Object]
+Row 3, Col 3 (Cell C3): 
+Row 3, Col 4 (Cell D3): 
+Row 3, Col 5 (Cell E3): 
+Row 5, Col 1 (Cell A5):   📌  معلومات العميل
+Row 5, Col 2 (Cell B5):   📌  معلومات العميل
+Row 5, Col 3 (Cell C5):   📌  معلومات العميل
+Row 5, Col 4 (Cell D5):   📌  معلومات العميل
+Row 5, Col 5 (Cell E5):   📌  معلومات العميل
+Row 6, Col 1 (Cell A6): المدرسة
+Row 6, Col 2 (Cell B6): اللواء / المنطقة
+Row 6, Col 3 (Cell C6): الاسم
+Row 6, Col 4 (Cell D6): نوع التعليم
+Row 6, Col 5 (Cell E6): نوع المدرسة
+Row 7, Col 1 (Cell A7): مدرسة ناعور للبنين
+Row 7, Col 2 (Cell B7): قصبة عمان
+Row 7, Col 3 (Cell C7): ابراهيم نصار 
+Row 7, Col 4 (Cell D7): التعليم الحكومي
+Row 7, Col 5 (Cell E7): ذكور
+Row 9, Col 1 (Cell A9):   📌  تفاصيل المعلمين والمواد
+Row 9, Col 2 (Cell B9):   📌  تفاصيل المعلمين والمواد
+Row 9, Col 3 (Cell C9):   📌  تفاصيل المعلمين والمواد
+Row 9, Col 4 (Cell D9):   📌  تفاصيل المعلمين والمواد
+Row 9, Col 5 (Cell E9):   📌  تفاصيل المعلمين والمواد
+Row 10, Col 1 (Cell A10): اسم المعلم
+Row 10, Col 2 (Cell B10): المادة
+Row 10, Col 3 (Cell C10): الصف
+Row 10, Col 4 (Cell D10): نوع الخدمة
+Row 10, Col 5 (Cell E10): السعر
+Row 11, Col 1 (Cell A11): محمد علي
+Row 11, Col 2 (Cell B11): الاجتماعيات
+Row 11, Col 3 (Cell C11): الرابع
+Row 11, Col 4 (Cell D11): بكج كامل (خطة وتحضير وتحليل)
+Row 11, Col 5 (Cell E11): 4.5 د.أ
+Row 12, Col 1 (Cell A12): محمد علي
+Row 12, Col 2 (Cell B12): الاجتماعيات
+Row 12, Col 3 (Cell C12): السادس
+Row 12, Col 4 (Cell D12): بكج كامل (خطة وتحضير وتحليل)
+Row 12, Col 5 (Cell E12): 4.5 د.أ
+Row 13, Col 1 (Cell A13): 
+Row 13, Col 2 (Cell B13): 
+Row 13, Col 3 (Cell C13): 
+Row 13, Col 4 (Cell D13): أجور التوصيل:
+Row 13, Col 5 (Cell E13): 3 د.أ
+Row 14, Col 1 (Cell A14): 
+Row 14, Col 2 (Cell B14): 
+Row 14, Col 3 (Cell C14): 
+Row 14, Col 4 (Cell D14): الإجمالي:
+Row 14, Col 5 (Cell E14): 12 د.أ
+Row 16, Col 1 (Cell A16): المحافظة
+Row 16, Col 2 (Cell B16): موقع المدرسة
+Row 16, Col 3 (Cell C16): موقع البيت
+Row 16, Col 4 (Cell D16): الهاتف 1  
+Row 16, Col 5 (Cell E16): الهاتف 2 
+Row 17, Col 1 (Cell A17): عمان
+Row 17, Col 2 (Cell B17): طبربور بجانب مسجد الاقصى
+Row 17, Col 3 (Cell C17): حي الزهور عمارة رقم 5
+Row 17, Col 4 (Cell D17): 795002082
+Row 17, Col 5 (Cell E17): 795002082
+Row 19, Col 1 (Cell A19): توصيل
+Row 19, Col 2 (Cell B19): توصيل
+Row 19, Col 3 (Cell C19): 
+Row 19, Col 4 (Cell D19): استلام من المكتبة
+Row 19, Col 5 (Cell E19): استلام من المكتبة
+Row 20, Col 1 (Cell A20): [object Object]
+Row 20, Col 2 (Cell B20): [object Object]
+Row 20, Col 3 (Cell C20): 
+Row 20, Col 4 (Cell D20): 
+Row 20, Col 5 (Cell E20): 
+Row 21, Col 1 (Cell A21): [object Object]
+Row 21, Col 2 (Cell B21): [object Object]
+Row 21, Col 3 (Cell C21): 
+Row 21, Col 4 (Cell D21): 
+Row 21, Col 5 (Cell E21): 
+Row 22, Col 1 (Cell A22): [object Object]
+Row 22, Col 2 (Cell B22): [object Object]
+Row 22, Col 3 (Cell C22): 
+Row 22, Col 4 (Cell D22): 
+Row 22, Col 5 (Cell E22): 
+
+Merged Cells:
+A20:B22
+D20:E22
+A1:E1
+A5:E5
+A9:E9
+A19:B19
+D19:E19
