@@ -229,13 +229,37 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     // Left Box: Cols 4 & 5 (Pickup on LEFT)
     styleExistingBox(boxStartRow, 4, boxEndRow, 5, !isDelivery);
 
-    // Generate Excel File buffer and trigger download in browser
+    // Generate Excel File buffer
     const buffer = await workbook.xlsx.writeBuffer();
+    const fileName = `طلب_${order.id || 'جديد'}.xlsx`;
+
+    try {
+      // Use modern File System Access API if supported (prompts "Save As" dialogue)
+      if ('showSaveFilePicker' in window) {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{
+            description: 'Excel File',
+            accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+          }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(buffer);
+        await writable.close();
+        return;
+      }
+    } catch (err: any) {
+      // If user cancels the prompt, just return without fallback
+      if (err.name === 'AbortError') return;
+      console.error('SaveFilePicker error:', err);
+    }
+
+    // Fallback for browsers that don't support showSaveFilePicker
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `طلب_${order.id || 'جديد'}.xlsx`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

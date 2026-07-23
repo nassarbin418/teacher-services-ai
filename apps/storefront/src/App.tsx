@@ -255,7 +255,14 @@ function InquiryScreen({ onBack, showToast }: any) {
 
   const handleReject = async (orderId: number) => {
     try {
-      const { error } = await supabase.from('orders').update({ status: 4 }).eq('id', orderId);
+      const targetOrder = orders.find(o => o.id === orderId);
+      if (targetOrder && targetOrder.status !== 0) {
+        showToast('عذراً، يمكن رفض الطلب فقط عندما تكون حالته "جديد".', 'error');
+        setConfirmRejectId(null);
+        return;
+      }
+
+      const { error } = await supabase.from('orders').update({ status: 5 }).eq('id', orderId).eq('status', 0);
       if (error) {
         throw error;
       }
@@ -266,7 +273,7 @@ function InquiryScreen({ onBack, showToast }: any) {
         order_id: orderId
       });
 
-      setOrders(orders.map(o => o.id === orderId ? { ...o, status: 4 } : o));
+      setOrders(orders.map(o => o.id === orderId ? { ...o, status: 5 } : o));
       showToast('تم رفض الطلب بنجاح. سيتم إشعار الإدارة بذلك.', 'success');
       setConfirmRejectId(null);
     } catch (err) {
@@ -274,16 +281,92 @@ function InquiryScreen({ onBack, showToast }: any) {
     }
   };
 
-  const getStatusBadge = (status: number) => {
-    const statuses = [
-      { text: 'جديد', bg: '#fef3c7', color: '#d97706' },
-      { text: 'قيد المعالجة', bg: '#dbeafe', color: '#2563eb' },
-      { text: 'تم الانتهاء', bg: '#dcfce7', color: '#16a34a' },
-      { text: 'مرفوض من الإدارة', bg: '#fee2e2', color: '#dc2626' },
-      { text: 'مرفوض من المعلم', bg: '#fee2e2', color: '#dc2626' }
-    ];
-    const s = statuses[status] || statuses[0];
-    return <span style={{ background: s.bg, color: s.color, padding: '0.4rem 1rem', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center' }}>{s.text}</span>;
+  const getStatusInfo = (status: number, deliveryType?: number | string) => {
+    const isDelivery = String(deliveryType) === '1' || String(deliveryType) === 'true';
+    switch (Number(status)) {
+      case 0:
+        return {
+          text: 'جديد',
+          bg: '#eff6ff',
+          color: '#1d4ed8',
+          border: '#bfdbfe',
+          desc: 'الطلب جديد وبانتظار مراجعة الإدارة والتعليمات.'
+        };
+      case 1:
+        return {
+          text: 'قيد الطباعة والمعالجة',
+          bg: '#fef3c7',
+          color: '#b45309',
+          border: '#fde68a',
+          desc: 'الطلب تحت التجهيز والطباعة حالياً من قبل المكتبة.'
+        };
+      case 2:
+        return {
+          text: isDelivery ? 'جاهز للتوصيل' : 'جاهز للاستلام',
+          bg: '#f3e8ff',
+          color: '#6b21a8',
+          border: '#d8b4fe',
+          desc: isDelivery
+            ? 'تم الانتهاء من الطباعة والطلب جاهز للخروج مع المندوب.'
+            : 'تم الانتهاء من الطباعة والطلب جاهز للاستلام من المكتبة.'
+        };
+      case 3:
+        return {
+          text: 'مكتمل / تم التسليم',
+          bg: '#d1fae5',
+          color: '#047857',
+          border: '#a7f3d0',
+          desc: 'تم تسليم الطلب للعميل واستلام الحساب بنجاح.'
+        };
+      case 4:
+        return {
+          text: 'مرفوض من الإدارة',
+          bg: '#f1f5f9',
+          color: '#475569',
+          border: '#cbd5e1',
+          desc: 'تم إلغاء أو رفض الطلب من قبل إدارة النظام.'
+        };
+      case 5:
+        return {
+          text: 'مرفوض من المعلم',
+          bg: '#fee2e2',
+          color: '#dc2626',
+          border: '#fca5a5',
+          desc: 'تم اعتذار المعلم عن تنفيذ هذا الطلب.'
+        };
+      default:
+        return {
+          text: 'مجهول',
+          bg: '#f8fafc',
+          color: '#64748b',
+          border: '#e2e8f0',
+          desc: ''
+        };
+    }
+  };
+
+  const renderStatusBadgeWithDesc = (status: number, deliveryType?: number | string) => {
+    const info = getStatusInfo(status, deliveryType);
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+        <span style={{
+          background: info.bg,
+          color: info.color,
+          border: `1px solid ${info.border}`,
+          padding: '0.4rem 1rem',
+          borderRadius: '12px',
+          fontSize: '0.9rem',
+          fontWeight: 'bold',
+          display: 'inline-flex',
+          alignItems: 'center'
+        }}>
+          {info.text}
+        </span>
+        <span style={{ fontSize: '0.82rem', color: '#64748b', textAlign: 'left', fontWeight: '500' }}>
+          💡 {info.desc}
+        </span>
+      </div>
+    );
   };
 
   return (
@@ -314,7 +397,7 @@ function InquiryScreen({ onBack, showToast }: any) {
                 <div key={order.id} style={{ background: 'white', padding: '1.5rem 2rem', borderRadius: '16px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid #f1f5f9' }}>
                     <h4 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--primary)', fontWeight: 'bold' }}>رقم الطلب: #{order.id}</h4>
-                    {getStatusBadge(order.status)}
+                    {renderStatusBadgeWithDesc(order.status, order.delivery_type)}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem 1rem', marginBottom: '1.5rem', background: '#f8fafc', borderRadius: '10px', padding: '1rem', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}>
                     <div><strong style={{ color: 'var(--primary)' }}>الاسم:</strong> {order.customer_name}</div>
@@ -380,7 +463,7 @@ function InquiryScreen({ onBack, showToast }: any) {
                       </div>
                     )}
 
-                  {order.status === 0 || order.status === 1 ? (
+                  {order.status === 0 ? (
                     confirmRejectId === order.id ? (
                       <div className="fade-in" style={{ background: '#fef2f2', padding: '1.5rem', borderRadius: '12px', border: '1px solid #fecaca', textAlign: 'center', marginTop: '1rem' }}>
                         <p style={{ color: '#dc2626', fontWeight: 'bold', marginBottom: '1rem', fontSize: '1.05rem' }}>هل أنت متأكد من رفضك لهذا الطلب؟ سيتم إشعار الإدارة بذلك.</p>
@@ -705,18 +788,24 @@ function OrderForm({ onBack, showToast }: any) {
             {/* نوع التعليم */}
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label className="form-label" style={{ textAlign: 'right' }}>نوع التعليم <span style={{ color: 'red' }}>*</span></label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '1rem' }}>
                 <div
                   onClick={() => setCustomerInfo({ ...customerInfo, directorate: 'التعليم الحكومي', district: '', otherDistrict: '' })}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.9rem', border: customerInfo.directorate === 'التعليم الحكومي' ? '2px solid var(--primary)' : '1px solid var(--border)', borderRadius: '10px', cursor: 'pointer', background: customerInfo.directorate === 'التعليم الحكومي' ? 'rgba(79,70,229,0.06)' : 'white', fontWeight: 'bold', color: customerInfo.directorate === 'التعليم الحكومي' ? 'var(--primary)' : 'var(--text)', transition: '0.2s' }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.9rem', border: customerInfo.directorate === 'التعليم الحكومي' ? '2px solid var(--primary)' : '1px solid var(--border)', borderRadius: '10px', cursor: 'pointer', background: customerInfo.directorate === 'التعليم الحكومي' ? 'rgba(79,70,229,0.06)' : 'white', fontWeight: 'bold', color: customerInfo.directorate === 'التعليم الحكومي' ? 'var(--primary)' : 'var(--text)', transition: '0.2s', fontSize: '0.9rem' }}
                 >
                   🏫 تعليم حكومي
                 </div>
                 <div
                   onClick={() => setCustomerInfo({ ...customerInfo, directorate: 'التعليم الخاص', district: '', otherDistrict: '' })}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.9rem', border: customerInfo.directorate === 'التعليم الخاص' ? '2px solid var(--primary)' : '1px solid var(--border)', borderRadius: '10px', cursor: 'pointer', background: customerInfo.directorate === 'التعليم الخاص' ? 'rgba(79,70,229,0.06)' : 'white', fontWeight: 'bold', color: customerInfo.directorate === 'التعليم الخاص' ? 'var(--primary)' : 'var(--text)', transition: '0.2s' }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.9rem', border: customerInfo.directorate === 'التعليم الخاص' ? '2px solid var(--primary)' : '1px solid var(--border)', borderRadius: '10px', cursor: 'pointer', background: customerInfo.directorate === 'التعليم الخاص' ? 'rgba(79,70,229,0.06)' : 'white', fontWeight: 'bold', color: customerInfo.directorate === 'التعليم الخاص' ? 'var(--primary)' : 'var(--text)', transition: '0.2s', fontSize: '0.9rem' }}
                 >
                   🏛️ تعليم خاص
+                </div>
+                <div
+                  onClick={() => setCustomerInfo({ ...customerInfo, directorate: 'التعليم العسكري', district: '', otherDistrict: '' })}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.9rem', border: customerInfo.directorate === 'التعليم العسكري' ? '2px solid var(--primary)' : '1px solid var(--border)', borderRadius: '10px', cursor: 'pointer', background: customerInfo.directorate === 'التعليم العسكري' ? 'rgba(79,70,229,0.06)' : 'white', fontWeight: 'bold', color: customerInfo.directorate === 'التعليم العسكري' ? 'var(--primary)' : 'var(--text)', transition: '0.2s', fontSize: '0.9rem' }}
+                >
+                  🎖️ تعليم عسكري
                 </div>
               </div>
             </div>
@@ -1157,7 +1246,7 @@ function OrderForm({ onBack, showToast }: any) {
               تم تأكيد طلبك بنجاح يا {customerInfo.name}.<br />
               تم استلام طلبك وسنقوم بالتواصل معك قريباً.<br />
               {customerInfo.deliveryType === 'delivery' && (
-                <span style={{ color: '#0369a1', fontWeight: 'bold' }}>سوف يتم توصيل طلبك خلال 24 - 48 ساعة.</span>
+                <span style={{ color: '#0369a1', fontWeight: 'bold' }}>سوف يتم توصيل طلبك خلال 48 - 72 ساعة.</span>
               )}
             </p>
 

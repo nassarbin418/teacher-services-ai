@@ -211,7 +211,7 @@ function App() {
   const updateOrderStatus = async (orderId: number, newStatus: number, deliveryType: number, deliveryPerson: string | null) => {
     try {
       if (newStatus === 2 && deliveryType === 1 && (!deliveryPerson || deliveryPerson.trim() === '')) {
-        showToast('يجب إدخال اسم المندوب في حال كان الطلب قيد التوصيل', 'error');
+        showToast('يجب إدخال اسم المندوب في حال كان الطلب جاهز للتوصيل', 'error');
         return;
       }
 
@@ -223,7 +223,14 @@ function App() {
       if (error) throw error;
 
       // Insert Notification
-      const statuses = ['جديد', 'قيد المعالجة', 'قيد التوصيل', 'مرفوض', 'مرفوض من المعلم'];
+      const statuses = [
+        'جديد',
+        'قيد الطباعة والمعالجة',
+        'جاهز للتوصيل / الاستلام',
+        'مكتمل / تم التسليم',
+        'مرفوض من الإدارة',
+        'مرفوض من المعلم'
+      ];
       await supabase.from('notifications').insert({
         message: `تم تغيير حالة الطلب #${orderId} إلى ${statuses[newStatus] || 'مجهول'}`,
         type: 'update',
@@ -250,8 +257,12 @@ function App() {
     }
   };
 
-  const handleExport = (order: any) => {
-    exportOrderToExcel(order, order.order_items || []);
+  const handleExport = async (order: any) => {
+    await exportOrderToExcel(order, order.order_items || []);
+    // When exporting/printing a new order (status === 0), auto transition to status 1 (قيد الطباعة والمعالجة)
+    if (Number(order.status) === 0) {
+      await updateOrderStatus(order.id, 1, order.delivery_type, order.delivery_person);
+    }
   };
 
   // Subjects Management functions
@@ -564,26 +575,30 @@ function App() {
       <main className="dashboard-main">
         {activeTab === 'orders' && (
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-              <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #94a3b8' }}>
-                <h3 style={{ color: 'var(--text-light)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>إجمالي الطلبات</h3>
-                <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)', margin: 0 }}>{orders.length}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #94a3b8' }}>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>إجمالي الطلبات</h3>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--primary)', margin: 0 }}>{orders.length}</p>
               </div>
-              <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #3b82f6' }}>
-                <h3 style={{ color: 'var(--text-light)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>الطلبات الجديدة</h3>
-                <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6', margin: 0 }}>{orders.filter(o => o.status === 0).length}</p>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #ef4444' }}>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>جديد</h3>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ef4444', margin: 0 }}>{orders.filter(o => o.status === 0).length}</p>
               </div>
-              <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #f59e0b' }}>
-                <h3 style={{ color: 'var(--text-light)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>قيد المعالجة</h3>
-                <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#f59e0b', margin: 0 }}>{orders.filter(o => o.status === 1).length}</p>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #f59e0b' }}>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>قيد الطباعة</h3>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f59e0b', margin: 0 }}>{orders.filter(o => o.status === 1).length}</p>
               </div>
-              <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #10b981' }}>
-                <h3 style={{ color: 'var(--text-light)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>قيد التوصيل</h3>
-                <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981', margin: 0 }}>{orders.filter(o => o.status === 2).length}</p>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #9333ea' }}>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>جاهز للتوصيل/الاستلام</h3>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9333ea', margin: 0 }}>{orders.filter(o => o.status === 2).length}</p>
               </div>
-              <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #ef4444' }}>
-                <h3 style={{ color: 'var(--text-light)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>المرفوضة</h3>
-                <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ef4444', margin: 0 }}>{orders.filter(o => o.status === 3 || o.status === 4).length}</p>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #10b981' }}>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>مكتمل</h3>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: 0 }}>{orders.filter(o => o.status === 3).length}</p>
+              </div>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #ef4444' }}>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>المرفوضة</h3>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ef4444', margin: 0 }}>{orders.filter(o => o.status === 4 || o.status === 5).length}</p>
               </div>
             </div>
 
@@ -623,10 +638,11 @@ function App() {
                 <select className="status-filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ height: '100%' }}>
                   <option value="all">جميع الحالات</option>
                   <option value="0">جديد</option>
-                  <option value="1">قيد المعالجة</option>
-                  <option value="2">قيد التوصيل</option>
-                  <option value="3">مرفوض</option>
-                  <option value="4">مرفوض من المعلم</option>
+                  <option value="1">قيد الطباعة والمعالجة</option>
+                  <option value="2">جاهز للتوصيل / الاستلام</option>
+                  <option value="3">مكتمل / تم التسليم</option>
+                  <option value="4">مرفوض من الإدارة</option>
+                  <option value="5">مرفوض من المعلم</option>
                 </select>
               </div>
 
@@ -729,16 +745,19 @@ function App() {
                                 outline: 'none',
                                 cursor: 'pointer',
                                 fontWeight: 'bold',
-                                background: order.status === 0 ? '#fee2e2' : order.status === 1 ? '#fef3c7' : order.status === 2 ? '#d1fae5' : '#f1f5f9',
-                                color: order.status === 0 ? '#dc2626' : order.status === 1 ? '#b45309' : order.status === 2 ? '#047857' : '#64748b',
-                                border: `1px solid ${order.status === 0 ? '#fca5a5' : order.status === 1 ? '#fde68a' : order.status === 2 ? '#a7f3d0' : '#cbd5e1'}`
+                                background: order.status === 0 ? '#fee2e2' : order.status === 1 ? '#fef3c7' : order.status === 2 ? '#f3e8ff' : order.status === 3 ? '#d1fae5' : order.status === 4 ? '#f1f5f9' : '#fee2e2',
+                                color: order.status === 0 ? '#dc2626' : order.status === 1 ? '#b45309' : order.status === 2 ? '#6b21a8' : order.status === 3 ? '#047857' : order.status === 4 ? '#475569' : '#dc2626',
+                                border: `1px solid ${order.status === 0 ? '#fca5a5' : order.status === 1 ? '#fde68a' : order.status === 2 ? '#d8b4fe' : order.status === 3 ? '#a7f3d0' : order.status === 4 ? '#cbd5e1' : '#fca5a5'}`
                               }}
                             >
                               <option value="0" style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 'bold' }}>جديد</option>
-                              <option value="1" style={{ background: '#fef3c7', color: '#b45309' }}>قيد المعالجة</option>
-                              <option value="2" style={{ background: '#d1fae5', color: '#047857' }}>قيد التوصيل</option>
-                              <option value="3" style={{ background: '#f1f5f9', color: '#64748b' }}>مرفوض</option>
-                              <option value="4" style={{ background: '#f1f5f9', color: '#64748b' }}>مرفوض من المعلم</option>
+                              <option value="1" style={{ background: '#fef3c7', color: '#b45309' }}>قيد الطباعة والمعالجة</option>
+                              <option value="2" style={{ background: '#f3e8ff', color: '#6b21a8' }}>
+                                {(String(order.delivery_type) === '1' || String(order.delivery_type) === 'true') ? 'جاهز للتوصيل' : 'جاهز للاستلام'}
+                              </option>
+                              <option value="3" style={{ background: '#d1fae5', color: '#047857' }}>مكتمل / تم التسليم</option>
+                              <option value="4" style={{ background: '#f1f5f9', color: '#475569' }}>مرفوض من الإدارة</option>
+                              <option value="5" style={{ background: '#fee2e2', color: '#dc2626' }}>مرفوض من المعلم</option>
                             </select>
                           </td>
                           <td>
