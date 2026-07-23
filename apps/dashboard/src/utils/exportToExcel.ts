@@ -61,8 +61,13 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     cellE10.numFmt = '@';
 
     // --- 3. Fill Teachers & Items (تفاصيل المعلمين والمواد) ---
-    const items = itemsParam || order.order_items || order.items || [];
-    
+    const itemsRaw = itemsParam || order.order_items || order.items || [];
+    // Sort items alphabetically by subject name
+    const items = [...itemsRaw].sort((a: any, b: any) => {
+      const subA = a.subject || '';
+      const subB = b.subject || '';
+      return subA.localeCompare(subB, 'ar');
+    });
     // Style helper for data cells using Segoe UI font matching Windows Excel template
     const setDataStyle = (cell: any) => {
       cell.font = { name: 'Segoe UI', size: 11, color: { argb: 'FF0F172A' } };

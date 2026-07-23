@@ -294,7 +294,7 @@ function InquiryScreen({ onBack, showToast }: any) {
         };
       case 1:
         return {
-          text: 'قيد الطباعة والمعالجة',
+          text: 'في مرحلة الطباعة',
           bg: '#fef3c7',
           color: '#b45309',
           border: '#fde68a',
@@ -302,7 +302,7 @@ function InquiryScreen({ onBack, showToast }: any) {
         };
       case 2:
         return {
-          text: isDelivery ? 'جاهز للتوصيل' : 'جاهز للاستلام',
+          text: isDelivery ? 'في مرحلة التوصيل' : 'في مرحلة الاستلام',
           bg: '#f3e8ff',
           color: '#6b21a8',
           border: '#d8b4fe',
@@ -320,7 +320,7 @@ function InquiryScreen({ onBack, showToast }: any) {
         };
       case 4:
         return {
-          text: 'مرفوض من الإدارة',
+          text: 'مرفوض من المكتبة',
           bg: '#f1f5f9',
           color: '#475569',
           border: '#cbd5e1',
