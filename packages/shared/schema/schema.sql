@@ -61,7 +61,8 @@ CREATE TABLE IF NOT EXISTS orders (
   total_amount NUMERIC NOT NULL,
   status INTEGER DEFAULT 0 NOT NULL,
   delivery_person TEXT,
-  colleague_notes TEXT
+  colleague_notes TEXT,
+  notes TEXT
 );
 
 -- Create Order Items Table
@@ -255,3 +256,6 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
   END IF;
 END $$;
+
+-- Ensure notes column exists in existing tables
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS notes TEXT;

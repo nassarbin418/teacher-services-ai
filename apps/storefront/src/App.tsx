@@ -20,6 +20,7 @@ interface CustomerInfo {
   schoolLocation: string;
   homeDeliveryGov: string;
   homeLocation: string;
+  notes?: string;
 }
 
 interface OrderItem {
@@ -166,6 +167,7 @@ function MultiSelect({ options, selected, onChange, placeholder, hasError }: any
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'inquiry' | 'form'>('landing');
+  const [editingOrder, setEditingOrder] = useState<any | null>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const toastTimeout = React.useRef<any>(null);
 
@@ -177,9 +179,9 @@ export default function App() {
 
   return (
     <div dir="rtl" className="min-h-screen relative">
-      {currentScreen === 'landing' && <LandingScreen onGo={setCurrentScreen} />}
-      {currentScreen === 'inquiry' && <InquiryScreen onBack={() => setCurrentScreen('landing')} showToast={showToast} />}
-      {currentScreen === 'form' && <OrderForm onBack={() => setCurrentScreen('landing')} showToast={showToast} />}
+      {currentScreen === 'landing' && <LandingScreen onGo={(screen: any) => { setEditingOrder(null); setCurrentScreen(screen); }} />}
+      {currentScreen === 'inquiry' && <InquiryScreen onBack={() => { setEditingOrder(null); setCurrentScreen('landing'); }} showToast={showToast} onEditOrder={(order: any) => { setEditingOrder(order); setCurrentScreen('form'); }} />}
+      {currentScreen === 'form' && <OrderForm onBack={() => { setEditingOrder(null); setCurrentScreen('landing'); }} showToast={showToast} initialOrder={editingOrder} />}
 
       {toast && (
         <div style={{
@@ -231,7 +233,7 @@ function LandingScreen({ onGo }: any) {
   );
 }
 
-function InquiryScreen({ onBack, showToast }: any) {
+function InquiryScreen({ onBack, showToast, onEditOrder }: any) {
   const [phone, setPhone] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
   const [searched, setSearched] = useState(false);
@@ -417,6 +419,11 @@ function InquiryScreen({ onBack, showToast }: any) {
                     {order.delivery_type === 1 && order.home_location && (
                       <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: 'var(--primary)' }}>عنوان البيت:</strong> {order.home_location.includes(' - ') ? order.home_location : `${order.governorate} - ${order.home_location}`}</div>
                     )}
+                    {order.notes && (
+                      <div style={{ gridColumn: '1 / -1', background: '#fffbeb', padding: '0.75rem', borderRadius: '8px', border: '1px solid #fde68a', color: '#92400e', marginTop: '0.5rem' }}>
+                        <strong style={{ color: '#b45309' }}>📝 ملاحظات الطلب:</strong> {order.notes}
+                      </div>
+                    )}
                     <div style={{ gridColumn: '1 / -1', color: '#64748b', fontSize: '0.85rem' }}>
                       <strong style={{ color: 'var(--primary)' }}>التاريخ:</strong>{' '}
                       <span dir="ltr">{new Date(order.created_at).toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
@@ -473,9 +480,14 @@ function InquiryScreen({ onBack, showToast }: any) {
                         </div>
                       </div>
                     ) : (
-                      <button onClick={() => setConfirmRejectId(order.id)} style={{ background: '#fce8e8', color: '#dc2626', border: 'none', padding: '1rem 1.5rem', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', fontSize: '1.05rem', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#fecaca'} onMouseOut={e => e.currentTarget.style.background = '#fce8e8'}>
-                        رفض الطلب
-                      </button>
+                      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', width: '100%' }}>
+                        <button onClick={() => onEditOrder && onEditOrder(order)} style={{ flex: 1, background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '1rem 1.5rem', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', fontSize: '1.05rem', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#c7d2fe'} onMouseOut={e => e.currentTarget.style.background = '#e0e7ff'}>
+                          ✏️ تعديل الطلب
+                        </button>
+                        <button onClick={() => setConfirmRejectId(order.id)} style={{ flex: 1, background: '#fce8e8', color: '#dc2626', border: 'none', padding: '1rem 1.5rem', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', fontSize: '1.05rem', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#fecaca'} onMouseOut={e => e.currentTarget.style.background = '#fce8e8'}>
+                          🗑️ رفض الطلب
+                        </button>
+                      </div>
                     )
                   ) : null}
                 </div>
@@ -488,12 +500,12 @@ function InquiryScreen({ onBack, showToast }: any) {
   );
 }
 
-function OrderForm({ onBack, showToast }: any) {
+function OrderForm({ onBack, showToast, initialOrder }: any) {
   const [step, setStep] = useState(1);
   const [dbSubjects, setDbSubjects] = useState<any[]>([]);
   const [subjectGradesMap, setSubjectGradesMap] = useState<Record<string | number, string[]>>({});
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
-    name: '', phone: '', phone2: '', schoolName: '', schoolType: '', directorate: '', governorate: '', district: '', otherDistrict: '', deliveryType: 'pickup', schoolDeliveryGov: '', schoolLocation: '', homeDeliveryGov: '', homeLocation: ''
+    name: '', phone: '', phone2: '', schoolName: '', schoolType: '', directorate: '', governorate: '', district: '', otherDistrict: '', deliveryType: 'pickup', schoolDeliveryGov: '', schoolLocation: '', homeDeliveryGov: '', homeLocation: '', notes: ''
   });
   const [teachers, setTeachers] = useState<Teacher[]>([{ id: 't1', name: '', items: [] }]);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -548,6 +560,59 @@ function OrderForm({ onBack, showToast }: any) {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  useEffect(() => {
+    if (initialOrder && dbSubjects.length > 0) {
+      setCustomerInfo({
+        name: initialOrder.customer_name || '',
+        phone: initialOrder.phone || '',
+        phone2: initialOrder.phone2 || '',
+        schoolName: initialOrder.school_name || '',
+        schoolType: initialOrder.school_type || '',
+        directorate: initialOrder.directorate || '',
+        governorate: initialOrder.governorate || '',
+        district: initialOrder.district || '',
+        otherDistrict: '',
+        deliveryType: initialOrder.delivery_type === 1 ? 'delivery' : 'pickup',
+        schoolDeliveryGov: initialOrder.governorate || '',
+        schoolLocation: initialOrder.school_location || '',
+        homeDeliveryGov: initialOrder.governorate || '',
+        homeLocation: initialOrder.home_location || '',
+        notes: initialOrder.notes || ''
+      });
+
+      if (initialOrder.order_items && Array.isArray(initialOrder.order_items)) {
+        const teacherMap: Record<string, Teacher> = {};
+        initialOrder.order_items.forEach((item: any, idx: number) => {
+          const tName = item.teacher_name || 'معلم 1';
+          if (!teacherMap[tName]) {
+            teacherMap[tName] = { id: 't_' + idx, name: tName, items: [] };
+          }
+          const subObj = dbSubjects.find(s => s.name === item.subject);
+          const subId = subObj ? subObj.id : item.subject;
+          const sType = item.service_type === 0 ? 'plan' : item.service_type === 1 ? 'prep' : 'both';
+          
+          const existingItem = teacherMap[tName].items.find(i => String(i.subjectId) === String(subId) && i.serviceType === sType);
+          if (existingItem) {
+            if (!existingItem.grades.includes(item.grade)) {
+              existingItem.grades.push(item.grade);
+            }
+          } else {
+            teacherMap[tName].items.push({
+              id: 'item_' + Math.random().toString(36).substr(2, 9),
+              subjectId: subId,
+              grades: [item.grade],
+              serviceType: sType
+            });
+          }
+        });
+        const teachersList = Object.values(teacherMap);
+        if (teachersList.length > 0) {
+          setTeachers(teachersList);
+        }
+      }
+    }
+  }, [initialOrder, dbSubjects]);
 
   const handleCustomerChange = (e: any) => {
     const { name, value } = e.target;
@@ -642,33 +707,68 @@ function OrderForm({ onBack, showToast }: any) {
         } catch (e) { console.error('Error updating district:', e); }
       }
 
-      const { data: orderData, error: orderError } = await supabase.from('orders').insert({
-        customer_name: customerInfo.name,
-        school_name: customerInfo.schoolName,
-        school_type: customerInfo.schoolType,
-        directorate: customerInfo.directorate,
-        governorate: customerInfo.governorate,
-        district: finalDistrict,
-        phone: customerInfo.phone,
-        phone2: customerInfo.phone2,
-        delivery_type: customerInfo.deliveryType === 'pickup' ? 0 : 1,
-        delivery_cost: deliveryCost,
-        total_amount: totalAmount,
-        school_location: customerInfo.schoolLocation,
-        home_location: customerInfo.homeLocation,
-        status: 0
-      }).select();
+      let orderId;
+      if (initialOrder && initialOrder.id) {
+        if (initialOrder.status !== 0) {
+          showToast('لا يمكن تعديل الطلب لأنه لم يعد في حالة "جديد"', 'error');
+          setIsSubmitting(false);
+          return;
+        }
+        orderId = initialOrder.id;
+        const { error: orderError } = await supabase.from('orders').update({
+          customer_name: customerInfo.name,
+          school_name: customerInfo.schoolName,
+          school_type: customerInfo.schoolType,
+          directorate: customerInfo.directorate,
+          governorate: customerInfo.governorate,
+          district: finalDistrict,
+          phone: customerInfo.phone,
+          phone2: customerInfo.phone2,
+          delivery_type: customerInfo.deliveryType === 'pickup' ? 0 : 1,
+          delivery_cost: deliveryCost,
+          total_amount: totalAmount,
+          school_location: customerInfo.schoolLocation,
+          home_location: customerInfo.homeLocation,
+          notes: customerInfo.notes || null
+        }).eq('id', orderId);
 
-      if (orderError) {
-        throw orderError;
+        if (orderError) throw orderError;
+
+        await supabase.from('order_items').delete().eq('order_id', orderId);
+
+        await supabase.from('notifications').insert({
+          message: `تم تعديل الطلب رقم #${orderId} من قبل ${customerInfo.name} - ${customerInfo.schoolName}`,
+          type: 'order_modified',
+          order_id: orderId
+        });
+      } else {
+        const { data: orderData, error: orderError } = await supabase.from('orders').insert({
+          customer_name: customerInfo.name,
+          school_name: customerInfo.schoolName,
+          school_type: customerInfo.schoolType,
+          directorate: customerInfo.directorate,
+          governorate: customerInfo.governorate,
+          district: finalDistrict,
+          phone: customerInfo.phone,
+          phone2: customerInfo.phone2,
+          delivery_type: customerInfo.deliveryType === 'pickup' ? 0 : 1,
+          delivery_cost: deliveryCost,
+          total_amount: totalAmount,
+          school_location: customerInfo.schoolLocation,
+          home_location: customerInfo.homeLocation,
+          notes: customerInfo.notes || null,
+          status: 0
+        }).select();
+
+        if (orderError) throw orderError;
+        orderId = orderData[0].id;
+
+        await supabase.from('notifications').insert({
+          message: `طلب جديد برقم #${orderId} من ${customerInfo.name} - ${customerInfo.schoolName}`,
+          type: 'new',
+          order_id: orderId
+        });
       }
-      const orderId = orderData[0].id;
-
-      await supabase.from('notifications').insert({
-        message: `طلب جديد برقم #${orderId} من ${customerInfo.name} - ${customerInfo.schoolName}`,
-        type: 'new',
-        order_id: orderId
-      });
 
       const orderItems = [];
       for (const teacher of teachers) {
@@ -802,10 +902,10 @@ function OrderForm({ onBack, showToast }: any) {
                   🏛️ تعليم خاص
                 </div>
                 <div
-                  onClick={() => setCustomerInfo({ ...customerInfo, directorate: 'التعليم العسكري', district: '', otherDistrict: '' })}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.9rem', border: customerInfo.directorate === 'التعليم العسكري' ? '2px solid var(--primary)' : '1px solid var(--border)', borderRadius: '10px', cursor: 'pointer', background: customerInfo.directorate === 'التعليم العسكري' ? 'rgba(79,70,229,0.06)' : 'white', fontWeight: 'bold', color: customerInfo.directorate === 'التعليم العسكري' ? 'var(--primary)' : 'var(--text)', transition: '0.2s', fontSize: '0.9rem' }}
+                  onClick={() => setCustomerInfo({ ...customerInfo, directorate: 'الثقافة العسكرية', district: '', otherDistrict: '' })}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.9rem', border: customerInfo.directorate === 'الثقافة العسكرية' ? '2px solid var(--primary)' : '1px solid var(--border)', borderRadius: '10px', cursor: 'pointer', background: customerInfo.directorate === 'الثقافة العسكرية' ? 'rgba(79,70,229,0.06)' : 'white', fontWeight: 'bold', color: customerInfo.directorate === 'الثقافة العسكرية' ? 'var(--primary)' : 'var(--text)', transition: '0.2s', fontSize: '0.9rem' }}
                 >
-                  🎖️ تعليم عسكري
+                  🎖️ الثقافة العسكرية
                 </div>
               </div>
             </div>
@@ -942,6 +1042,22 @@ function OrderForm({ onBack, showToast }: any) {
                 </div>
               </div>
             )}
+
+            <div className="form-group" style={{ marginTop: '1.5rem' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>📝 ملاحظات إضافية على الطلب</span>
+                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal' }}>(اختياري)</span>
+              </label>
+              <textarea
+                className="form-input"
+                name="notes"
+                value={customerInfo.notes || ''}
+                onChange={handleCustomerChange}
+                rows={3}
+                placeholder="إذا كان لديك أي ملاحظات أو تعليمات خاصة بالطلب، اكتبها هنا..."
+                style={{ resize: 'vertical', minHeight: '80px', fontFamily: 'inherit' }}
+              />
+            </div>
 
             {!isStep1Valid && (
               <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '1.5rem', marginBottom: '1.5rem' }}>
@@ -1164,6 +1280,11 @@ function OrderForm({ onBack, showToast }: any) {
               {customerInfo.deliveryType === 'delivery' && customerInfo.homeLocation && (
                 <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>عنوان البيت:</strong> {customerInfo.homeDeliveryGov} - {customerInfo.homeLocation}</div>
               )}
+              {customerInfo.notes && (
+                <div style={{ gridColumn: '1 / -1', background: '#fffbeb', padding: '0.75rem', borderRadius: '8px', border: '1px solid #fde68a', color: '#92400e', marginTop: '0.5rem' }}>
+                  <strong style={{ color: '#b45309' }}>📝 ملاحظات الطلب:</strong> {customerInfo.notes}
+                </div>
+              )}
             </div>
 
             <h3 style={{ color: 'var(--text-light)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>تفاصيل الطلب</h3>
@@ -1226,7 +1347,7 @@ function OrderForm({ onBack, showToast }: any) {
             <div style={{ display: 'flex', gap: '1rem' }}>
               <button className="btn" style={{ flex: 1, padding: '1.2rem', borderRadius: '12px', fontWeight: 'bold', fontSize: '1.1rem', color: 'white', background: '#475569', border: 'none', cursor: 'pointer' }} onClick={() => setStep(2)}>تعديل الطلبات</button>
               <button className="btn" style={{ flex: 1, padding: '1.2rem', borderRadius: '12px', fontWeight: 'bold', fontSize: '1.1rem', color: 'white', background: '#dc2626', border: 'none', cursor: isSubmitting ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 8px 20px rgba(220, 38, 38, 0.4)' }} onClick={handleSubmit} disabled={isSubmitting || !isStep3Valid}>
-                {isSubmitting ? <Loader2 className="spinner" /> : <><CheckCircle size={20} /> إرسال الطلب النهائي</>}
+                {isSubmitting ? <Loader2 className="spinner" /> : <><CheckCircle size={20} /> {initialOrder ? 'حفظ التعديلات على الطلب' : 'إرسال الطلب النهائي'}</>}
               </button>
             </div>
           </div>
@@ -1239,14 +1360,17 @@ function OrderForm({ onBack, showToast }: any) {
             </div>
             
             <h2 style={{ color: 'var(--primary)', marginBottom: '1.5rem', fontSize: '2.5rem', fontWeight: '900' }}>
-              شكراً لك!
+              {initialOrder ? 'تم تعديل الطلب بنجاح!' : 'شكراً لك!'}
             </h2>
             
             <p style={{ color: 'var(--text-light)', marginBottom: '2.5rem', fontSize: '1.15rem', lineHeight: '1.8', maxWidth: '90%', margin: '0 auto 2.5rem auto' }}>
-              تم تأكيد طلبك بنجاح يا {customerInfo.name}.<br />
-              تم استلام طلبك وسنقوم بالتواصل معك قريباً.<br />
-              {customerInfo.deliveryType === 'delivery' && (
-                <span style={{ color: '#0369a1', fontWeight: 'bold' }}>سوف يتم توصيل طلبك خلال 48 - 72 ساعة.</span>
+              {initialOrder ? (
+                <>تم حفظ التعديلات على الطلب رقم #{initialOrder.id} بنجاح يا {customerInfo.name}.<br />سنقوم بمعالجة التحديثات الجديدة على طلبك.</>
+              ) : (
+                <>تم تأكيد طلبك بنجاح يا {customerInfo.name}.<br />تم استلام طلبك وسنقوم بالتواصل معك قريباً.<br />
+                {customerInfo.deliveryType === 'delivery' && (
+                  <span style={{ color: '#0369a1', fontWeight: 'bold' }}>سوف يتم توصيل طلبك خلال 48 - 72 ساعة.</span>
+                )}</>
               )}
             </p>
 
@@ -1256,9 +1380,15 @@ function OrderForm({ onBack, showToast }: any) {
             </a>
 
             <div>
-              <button className="btn" onClick={() => window.location.reload()} style={{ background: '#dc2626', color: 'white', padding: '1.2rem 3.5rem', borderRadius: '16px', fontSize: '1.2rem', fontWeight: 'bold', border: 'none', cursor: 'pointer', boxShadow: '0 8px 25px rgba(220, 38, 38, 0.4)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Plus size={20} /> إدخال طلب جديد
-              </button>
+              {initialOrder ? (
+                <button className="btn" onClick={() => onBack()} style={{ background: '#475569', color: 'white', padding: '1.2rem 3.5rem', borderRadius: '16px', fontSize: '1.2rem', fontWeight: 'bold', border: 'none', cursor: 'pointer', boxShadow: '0 8px 25px rgba(71, 85, 105, 0.4)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ArrowLeft size={20} /> العودة لصفحة البحث
+                </button>
+              ) : (
+                <button className="btn" onClick={() => window.location.reload()} style={{ background: '#dc2626', color: 'white', padding: '1.2rem 3.5rem', borderRadius: '16px', fontSize: '1.2rem', fontWeight: 'bold', border: 'none', cursor: 'pointer', boxShadow: '0 8px 25px rgba(220, 38, 38, 0.4)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Plus size={20} /> إدخال طلب جديد
+                </button>
+              )}
             </div>
           </div>
         )}

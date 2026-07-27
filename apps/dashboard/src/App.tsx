@@ -43,6 +43,13 @@ function App() {
   const [notifPage, setNotifPage] = useState(0);
   const [hasMoreNotifs, setHasMoreNotifs] = useState(true);
 
+  const unreadModifiedNotifs = notifications.filter(n => 
+    !n.is_read && (
+      n.type === 'order_modified' || 
+      (n.message && typeof n.message === 'string' && n.message.includes('تم تعديل الطلب'))
+    )
+  );
+
   const showToast = (message: string, type: 'new' | 'update' | 'error' | 'success' = 'update') => {
     setToast({ message, type });
     if (toastTimeout.current) clearTimeout(toastTimeout.current);
@@ -429,6 +436,7 @@ function App() {
       (`#${order.id}`).includes(term) ||
       order.phone?.includes(term) ||
       order.phone2?.includes(term) ||
+      order.notes?.toLowerCase().includes(term) ||
       isoDate.includes(term) ||
       formattedDate.includes(term) ||
       matchesItems;
@@ -547,8 +555,8 @@ function App() {
                       onClick={() => { if (!notif.is_read) markNotifAsRead(notif.id); }}
                       style={{
                         padding: '1rem', borderRadius: '8px', cursor: notif.is_read ? 'default' : 'pointer',
-                        background: notif.is_read ? '#f8fafc' : (notif.type === 'new' ? '#ecfdf5' : '#eff6ff'),
-                        borderRight: `4px solid ${notif.is_read ? '#cbd5e1' : (notif.type === 'new' ? '#10b981' : '#3b82f6')}`,
+                        background: notif.is_read ? '#f8fafc' : (notif.type === 'new' ? '#ecfdf5' : notif.type === 'order_modified' ? '#fffbeb' : '#eff6ff'),
+                        borderRight: `4px solid ${notif.is_read ? '#cbd5e1' : (notif.type === 'new' ? '#10b981' : notif.type === 'order_modified' ? '#f59e0b' : '#3b82f6')}`,
                         opacity: notif.is_read ? 0.7 : 1
                       }}>
                       <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text)', fontWeight: notif.is_read ? 'normal' : 'bold' }}>{notif.message}</p>
@@ -655,6 +663,55 @@ function App() {
             </div>
 
             {renderToast()}
+
+            {unreadModifiedNotifs.length > 0 && (
+              <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {unreadModifiedNotifs.map(notif => (
+                  <div key={notif.id} className="fade-in" style={{
+                    background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                    border: '1px solid #fde68a',
+                    borderRadius: '12px',
+                    padding: '1rem 1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 4px 12px rgba(245, 158, 11, 0.15)',
+                    gap: '1rem',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f59e0b', color: '#fff', width: '36px', height: '36px', borderRadius: '50%' }}>✏️</span>
+                      <div>
+                        <strong style={{ color: '#92400e', fontSize: '1.05rem', display: 'block', marginBottom: '0.15rem' }}>تنبيه: تم تعديل طلب من قبل العميل</strong>
+                        <span style={{ color: '#78350f', fontSize: '0.95rem' }}>{notif.message}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => markNotifAsRead(notif.id)}
+                      style={{
+                        background: '#fff',
+                        color: '#b45309',
+                        border: '1px solid #fcd34d',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        fontSize: '0.9rem',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                      }}
+                      onMouseOver={e => { e.currentTarget.style.background = '#fde68a'; e.currentTarget.style.color = '#78350f'; }}
+                      onMouseOut={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#b45309'; }}
+                    >
+                      <span>✕</span> إخفاء
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="table-container">
               {loading ? (
@@ -808,6 +865,11 @@ function App() {
                                     <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #cbd5e1', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                       <div><strong>عنوان المدرسة:</strong> {order.school_location ? (order.school_location.includes(' - ') ? order.school_location : `${order.governorate} - ${order.school_location}`) : 'غير متوفر'}</div>
                                       <div><strong>عنوان البيت:</strong> {order.home_location ? (order.home_location.includes(' - ') ? order.home_location : `${order.governorate} - ${order.home_location}`) : 'غير متوفر'}</div>
+                                    </div>
+                                  )}
+                                  {order.notes && (
+                                    <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #cbd5e1', fontSize: '0.95rem', background: '#fffbeb', padding: '0.75rem', borderRadius: '8px', border: '1px solid #fde68a', color: '#92400e' }}>
+                                      <strong style={{ color: '#b45309' }}>📝 ملاحظات الطلب:</strong> {order.notes}
                                     </div>
                                   )}
                                 </div>

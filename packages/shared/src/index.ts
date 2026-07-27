@@ -69,4 +69,5 @@ export interface Order {
   status?: OrderStatus;
   delivery_person?: string;
   colleague_notes?: string;
+  notes?: string;
 }

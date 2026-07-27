@@ -32,6 +32,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // Styling helpers for static cells
     const setHeaderStyle = (cell: any) => {
+      cell.style = {};
       cell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF000000' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
       cell.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -39,10 +40,19 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     };
 
     const setValueStyle = (cell: any) => {
+      cell.style = {};
       cell.font = { name: 'Segoe UI', size: 11, color: { argb: 'FF0F172A' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
       cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+    };
+
+    const safeMerge = (startRow: number, startCol: number, endRow: number, endCol: number) => {
+      try {
+        worksheet.mergeCells(startRow, startCol, endRow, endCol);
+      } catch (e) {
+        // Cell range is already merged in template - safe to proceed
+      }
     };
 
     // --- 1. Fill Order Info (معلومات الطلب) ---
@@ -53,6 +63,18 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     // Cell B3: Order Creation Date
     const cellB3 = worksheet.getCell('B3');
     cellB3.value = formattedCreatedAt;
+
+    // Cells C2:E2 (Merged Header for Order Notes - next to date on the left)
+    safeMerge(2, 3, 2, 5);
+    const cellC2 = worksheet.getCell('C2');
+    cellC2.value = 'ملاحظات الطلب';
+    ['C2', 'D2', 'E2'].forEach(addr => setHeaderStyle(worksheet.getCell(addr)));
+
+    // Cells C3:E3 (Merged Value for Order Notes)
+    safeMerge(3, 3, 3, 5);
+    const cellC3 = worksheet.getCell('C3');
+    cellC3.value = order.notes || 'لا توجد ملاحظات';
+    ['C3', 'D3', 'E3'].forEach(addr => setValueStyle(worksheet.getCell(addr)));
 
     // --- 2. Fill Customer Info (معلومات العميل) ---
     // Row 7 (Values 1): المدرسة | اللواء/المنطقة | الاسم | نوع التعليم | نوع المدرسة
@@ -72,6 +94,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     });
     // Style helper for data cells using Segoe UI font matching Windows Excel template
     const setDataStyle = (cell: any) => {
+      cell.style = {};
       cell.font = { name: 'Segoe UI', size: 11, bold: false, color: { argb: 'FF0F172A' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
       cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
@@ -81,14 +104,6 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
         bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
         right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
       };
-    };
-
-    const safeMerge = (startRow: number, startCol: number, endRow: number, endCol: number) => {
-      try {
-        worksheet.mergeCells(startRow, startCol, endRow, endCol);
-      } catch (e) {
-        // Cell range is already merged in template - safe to proceed
-      }
     };
 
     // Items start at Row 11
@@ -140,6 +155,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     if (isDelivery || deliveryCostVal > 0) {
       // Write Delivery Cost at currentRowIndex
       const deliveryCellLabel = worksheet.getCell(`D${currentRowIndex}`);
+      deliveryCellLabel.style = {};
       deliveryCellLabel.value = 'أجور التوصيل:';
       deliveryCellLabel.font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FF1F2937' } };
       deliveryCellLabel.alignment = { horizontal: 'left', vertical: 'middle' };
@@ -147,6 +163,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       deliveryCellLabel.border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
 
       const deliveryCellVal = worksheet.getCell(`E${currentRowIndex}`);
+      deliveryCellVal.style = {};
       deliveryCellVal.value = `${deliveryCostVal} د.أ`;
       deliveryCellVal.font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FF1F2937' } };
       deliveryCellVal.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -158,6 +175,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // Write Total Amount at currentRowIndex
     const totalCellLabel = worksheet.getCell(`D${currentRowIndex}`);
+    totalCellLabel.style = {};
     totalCellLabel.value = 'الإجمالي:';
     totalCellLabel.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF1E293B' } };
     totalCellLabel.alignment = { horizontal: 'left', vertical: 'middle' };
@@ -165,6 +183,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     totalCellLabel.border = { top: { style: 'thin', color: { argb: 'FF94A3B8' } }, left: { style: 'thin', color: { argb: 'FF94A3B8' } }, bottom: { style: 'thin', color: { argb: 'FF94A3B8' } }, right: { style: 'thin', color: { argb: 'FF94A3B8' } } };
 
     const totalCellVal = worksheet.getCell(`E${currentRowIndex}`);
+    totalCellVal.style = {};
     totalCellVal.value = `${order.total_amount || 0} د.أ`;
     totalCellVal.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF059669' } };
     totalCellVal.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -180,6 +199,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     worksheet.getRow(currentRowIndex).height = 20;
     ciHeaders.forEach((text, i) => {
       const cell = worksheet.getCell(currentRowIndex, i + 1);
+      cell.style = {};
       cell.value = text;
       cell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF000000' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
@@ -199,6 +219,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     worksheet.getRow(currentRowIndex).height = 24;
     ciValues.forEach((val, i) => {
       const cell = worksheet.getCell(currentRowIndex, i + 1);
+      cell.style = {};
       cell.value = val;
       cell.font = { name: 'Segoe UI', size: 11, color: { argb: 'FF0F172A' } };
       cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
@@ -217,6 +238,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     // Right Header (Cols 1 & 2 in RTL view): توصيل
     safeMerge(boxHeaderRow, 1, boxHeaderRow, 2);
     const headerDeliveryCell = worksheet.getCell(boxHeaderRow, 1);
+    headerDeliveryCell.style = {};
     headerDeliveryCell.value = 'توصيل';
     headerDeliveryCell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF1E293B' } };
     headerDeliveryCell.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -229,6 +251,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     // Left Header (Cols 4 & 5 in RTL view): استلام من المكتبة
     safeMerge(boxHeaderRow, 4, boxHeaderRow, 5);
     const headerPickupCell = worksheet.getCell(boxHeaderRow, 4);
+    headerPickupCell.style = {};
     headerPickupCell.value = 'استلام من المكتبة';
     headerPickupCell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF1E293B' } };
     headerPickupCell.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -253,6 +276,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       for (let r = startRow; r <= endRow; r++) {
         for (let c = startCol; c <= endCol; c++) {
           const cell = worksheet.getCell(r, c);
+          cell.style = {};
           cell.value = '';
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
           cell.border = {
@@ -292,10 +316,10 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // --- 6. Force Apply Static Styles at the Very End ---
     // This prevents ExcelJS shared style mutation bugs when many items overwrite cells that shared styles with headers in the template
-    ['A2', 'B2', 'A6', 'B6', 'C6', 'D6', 'E6', 'A10', 'B10', 'C10', 'D10', 'E10'].forEach(ref => {
+    ['A2', 'B2', 'C2', 'D2', 'E2', 'A6', 'B6', 'C6', 'D6', 'E6', 'A10', 'B10', 'C10', 'D10', 'E10'].forEach(ref => {
       setHeaderStyle(worksheet.getCell(ref));
     });
-    ['A3', 'B3', 'A7', 'B7', 'C7', 'D7', 'E7'].forEach(ref => {
+    ['A3', 'B3', 'C3', 'D3', 'E3', 'A7', 'B7', 'C7', 'D7', 'E7'].forEach(ref => {
       setValueStyle(worksheet.getCell(ref));
     });
 
