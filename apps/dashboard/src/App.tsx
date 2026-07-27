@@ -38,6 +38,17 @@ function App() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [toast, setToast] = useState<{ message: string, type: 'new' | 'update' | 'error' | 'success' } | null>(null);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notifRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Pagination for Notifications
   const [notifPage, setNotifPage] = useState(0);
@@ -233,10 +244,10 @@ function App() {
       const statuses = [
         'جديد',
         'في مرحلة الطباعة',
-        'في مرحلة التوصيل / الاستلام',
+        'مع شركة التوصيل / جاهز للاستلام',
         'مكتمل / تم التسليم',
         'مرفوض من المكتبة',
-        'مرفوض من المعلم'
+        'تم الغاء الطلب'
       ];
       await supabase.from('notifications').insert({
         message: `تم تغيير حالة الطلب #${orderId} إلى ${statuses[newStatus] || 'مجهول'}`,
@@ -509,7 +520,7 @@ function App() {
           </nav>
         </div>
 
-        <div style={{ position: 'relative' }}>
+        <div ref={notifRef} style={{ position: 'relative' }}>
           <button
             className="icon-btn"
             style={{ position: 'relative', background: 'white', padding: '0.75rem', borderRadius: '50%', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', border: '1px solid var(--border)' }}
@@ -597,7 +608,7 @@ function App() {
                 <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f59e0b', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 1).length}</p>
               </div>
               <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #9333ea', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('2')}>
-                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>في مرحلة التوصيل/الاستلام</h3>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>مع شركة التوصيل / جاهز للاستلام</h3>
                 <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9333ea', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 2).length}</p>
               </div>
               <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #10b981', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('3')}>
@@ -605,7 +616,7 @@ function App() {
                 <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 3).length}</p>
               </div>
               <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #ef4444', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('4')}>
-                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>المرفوضة</h3>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>المرفوضة / الملغاة</h3>
                 <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ef4444', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 4 || o.status === 5).length}</p>
               </div>
             </div>
@@ -647,10 +658,10 @@ function App() {
                   <option value="all">جميع الحالات</option>
                   <option value="0">جديد</option>
                   <option value="1">في مرحلة الطباعة</option>
-                  <option value="2">في مرحلة التوصيل / الاستلام</option>
+                  <option value="2">مع شركة التوصيل / جاهز للاستلام</option>
                   <option value="3">مكتمل / تم التسليم</option>
                   <option value="4">مرفوض من المكتبة</option>
-                  <option value="5">مرفوض من المعلم</option>
+                  <option value="5">تم الغاء الطلب</option>
                 </select>
               </div>
 
@@ -810,11 +821,11 @@ function App() {
                               <option value="0" style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 'bold' }}>جديد</option>
                               <option value="1" style={{ background: '#fef3c7', color: '#b45309' }}>في مرحلة الطباعة</option>
                               <option value="2" style={{ background: '#f3e8ff', color: '#6b21a8' }}>
-                                {(String(order.delivery_type) === '1' || String(order.delivery_type) === 'true') ? 'في مرحلة التوصيل' : 'في مرحلة الاستلام'}
+                                {(String(order.delivery_type) === '1' || String(order.delivery_type) === 'true') ? 'مع شركة التوصيل' : 'جاهز للاستلام من المكتبة'}
                               </option>
                               <option value="3" style={{ background: '#d1fae5', color: '#047857' }}>مكتمل / تم التسليم</option>
                               <option value="4" style={{ background: '#f1f5f9', color: '#475569' }}>مرفوض من المكتبة</option>
-                              <option value="5" style={{ background: '#fee2e2', color: '#dc2626' }}>مرفوض من المعلم</option>
+                              <option value="5" style={{ background: '#fee2e2', color: '#dc2626' }}>تم الغاء الطلب</option>
                             </select>
                           </td>
                           <td>
@@ -890,7 +901,14 @@ function App() {
                                       {order.order_items.map((item: any) => (
                                         <tr key={item.id}>
                                           <td>{item.teacher_name}</td>
-                                          <td>{item.subject}</td>
+                                          <td>
+                                            {String(item.subject || '').replace(' (فصل الدوسيات)', '')}
+                                            {(item.separate_dosiyyah || String(item.subject || '').includes('فصل الدوسيات')) && (
+                                              <span style={{ display: 'inline-block', background: '#fef3c7', color: '#b45309', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.75rem', marginRight: '0.5rem', fontWeight: 'bold', border: '1px solid #fde68a' }}>
+                                                فصل الدوسيات
+                                              </span>
+                                            )}
+                                          </td>
                                           <td>{item.grade}</td>
                                           <td>{item.service_type === 0 ? 'خطة فصلية' : item.service_type === 1 ? 'تحضير يومي' : 'بكج كامل (خطة وتحضير وتحليل)'}</td>
                                           <td>{item.price} د.أ</td>

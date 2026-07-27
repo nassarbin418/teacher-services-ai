@@ -124,7 +124,9 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
         }
 
         const cellA = worksheet.getCell(`A${r}`); cellA.style = {}; cellA.value = item.teacher_name || ''; setDataStyle(cellA);
-        const cellB = worksheet.getCell(`B${r}`); cellB.style = {}; cellB.value = item.subject || ''; setDataStyle(cellB);
+        const subVal = String(item.subject || '');
+        const displaySubject = (item.separate_dosiyyah && !subVal.includes('فصل الدوسيات')) ? `${subVal} (فصل الدوسيات)` : subVal;
+        const cellB = worksheet.getCell(`B${r}`); cellB.style = {}; cellB.value = displaySubject; setDataStyle(cellB);
         const cellC = worksheet.getCell(`C${r}`); cellC.style = {}; cellC.value = item.grade || ''; setDataStyle(cellC);
         const cellD = worksheet.getCell(`D${r}`); cellD.style = {}; cellD.value = serviceTypeName(item.service_type); setDataStyle(cellD);
         const cellE = worksheet.getCell(`E${r}`); cellE.style = {}; cellE.value = `${item.price || 0} د.أ`; setDataStyle(cellE);

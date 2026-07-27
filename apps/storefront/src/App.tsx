@@ -28,6 +28,7 @@ interface OrderItem {
   subjectId: string | number;
   grades: string[];
   serviceType: 'plan' | 'prep' | 'both';
+  separateDosiyyah?: boolean;
 }
 
 interface Teacher {
@@ -206,9 +207,9 @@ function LandingScreen({ onGo }: any) {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '2rem' }}>
       <div style={{ background: 'white', padding: '3rem', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', textAlign: 'center', maxWidth: '500px', width: '100%' }}>
         <img src="logo.jpg" alt="Logo" style={{ width: '160px', display: 'block', margin: '0 auto 1.5rem auto' }} />
-        <h1 style={{ fontSize: '2.2rem', color: 'var(--primary)', marginBottom: '0.5rem' }}>مكتبة نصار - منصة المعلمين</h1>
+        <h1 style={{ fontSize: '2.2rem', color: 'var(--primary)', marginBottom: '0.5rem' }}>مكتبة نصار لخدمات المعلمين</h1>
         <p style={{ color: 'var(--text-light)', marginBottom: '1rem', fontSize: '1.1rem', lineHeight: '1.6' }}>
-          نقدم لك خدمة إعداد الخطط الفصلية وتحضير الدروس بأعلى جودة لتوفير وقتك وجهدك.
+          نقدم لك خطة تجهيز الخطط الفصلية وتحليل المحتوى وتحضير الدروس باعلى المواصفات 
         </p>
         <p style={{ color: 'var(--primary)', fontWeight: 'bold', marginBottom: '1rem', fontSize: '1.2rem' }}>أهلاً بك.. اختر الخدمة التي تريدها للبدء</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -304,13 +305,13 @@ function InquiryScreen({ onBack, showToast, onEditOrder }: any) {
         };
       case 2:
         return {
-          text: isDelivery ? 'في مرحلة التوصيل' : 'في مرحلة الاستلام',
+          text: isDelivery ? 'مع شركة التوصيل' : 'جاهز للاستلام من المكتبة',
           bg: '#f3e8ff',
           color: '#6b21a8',
           border: '#d8b4fe',
           desc: isDelivery
-            ? 'تم الانتهاء من الطباعة والطلب جاهز للخروج مع المندوب.'
-            : 'تم الانتهاء من الطباعة والطلب جاهز للاستلام من المكتبة.'
+            ? 'تم الانتهاء من الطباعة والطلب حالياً مع شركة التوصيل وفي طريقه إليك.'
+            : 'تم الانتهاء من التجهيز والطباعة والطلب الآن جاهز للاستلام من المكتبة.'
         };
       case 3:
         return {
@@ -330,11 +331,11 @@ function InquiryScreen({ onBack, showToast, onEditOrder }: any) {
         };
       case 5:
         return {
-          text: 'مرفوض من المعلم',
+          text: 'تم الغاء الطلب',
           bg: '#fee2e2',
           color: '#dc2626',
           border: '#fca5a5',
-          desc: 'تم اعتذار المعلم عن تنفيذ هذا الطلب.'
+          desc: 'تم الغاء الطلب من قبل المعلم.'
         };
       default:
         return {
@@ -398,7 +399,7 @@ function InquiryScreen({ onBack, showToast, onEditOrder }: any) {
               {orders.map(order => (
                 <div key={order.id} style={{ background: 'white', padding: '1.5rem 2rem', borderRadius: '16px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid #f1f5f9' }}>
-                    <h4 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--primary)', fontWeight: 'bold' }}>رقم الطلب: #{order.id}</h4>
+                    <h4 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--primary)', fontWeight: 'bold' }}>تفاصيل الطلب</h4>
                     {renderStatusBadgeWithDesc(order.status, order.delivery_type)}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem 1rem', marginBottom: '1.5rem', background: '#f8fafc', borderRadius: '10px', padding: '1rem', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}>
@@ -448,7 +449,14 @@ function InquiryScreen({ onBack, showToast, onEditOrder }: any) {
                               {order.order_items.map((item: any) => (
                                 <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                   <td style={{ padding: '0.5rem' }}>{item.teacher_name}</td>
-                                  <td style={{ padding: '0.5rem' }}>{item.subject}</td>
+                                  <td style={{ padding: '0.5rem' }}>
+                                    {String(item.subject || '').replace(' (فصل الدوسيات)', '')}
+                                    {(item.separate_dosiyyah || String(item.subject || '').includes('فصل الدوسيات')) && (
+                                      <span style={{ display: 'inline-block', background: '#fef3c7', color: '#b45309', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.75rem', marginRight: '0.5rem', fontWeight: 'bold', border: '1px solid #fde68a' }}>
+                                        فصل الدوسيات
+                                      </span>
+                                    )}
+                                  </td>
                                   <td style={{ padding: '0.5rem' }}>{item.grade}</td>
                                   <td style={{ padding: '0.5rem' }}>
                                     {['الأول', 'الثاني', 'الثالث'].includes(item.grade) ? 'خطة وتحضير وتحليل' : item.service_type === 0 ? 'خطة' : item.service_type === 1 ? 'تحضير' : 'خطة وتحضير'}
@@ -649,7 +657,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
       if (existing) return { ...t, items: t.items.filter(i => i.subjectId !== subject.id) };
       const newItemId = Math.random().toString();
       setExpandedItems(prev => [...prev, newItemId]);
-      return { ...t, items: [...t.items, { id: newItemId, subjectId: subject.id, grades: [], serviceType: defaultServiceType }] };
+      return { ...t, items: [...t.items, { id: newItemId, subjectId: subject.id, grades: [], serviceType: defaultServiceType, separateDosiyyah: false }] };
     }));
   };
 
@@ -659,6 +667,10 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
 
   const updateItemServiceType = (teacherId: string, itemId: string, type: 'plan' | 'prep' | 'both') => {
     setTeachers(teachers.map(t => t.id === teacherId ? { ...t, items: t.items.map(i => i.id === itemId ? { ...i, serviceType: type } : i) } : t));
+  };
+
+  const updateItemSeparateDosiyyah = (teacherId: string, itemId: string, separateDosiyyah: boolean) => {
+    setTeachers(teachers.map(t => t.id === teacherId ? { ...t, items: t.items.map(i => i.id === itemId ? { ...i, separateDosiyyah } : i) } : t));
   };
 
   const calculateTotal = () => {
@@ -675,9 +687,13 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
         item.grades.forEach(g => {
           if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
             total += 7; // Fixed package price
+            if (item.separateDosiyyah) total += 1.5;
           } else {
             if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') total += subject.plan_price;
             if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') total += subject.prep_price;
+            if (item.separateDosiyyah) {
+              total += (effectiveServiceType === 'both' ? 1.0 : 0.5);
+            }
           }
         });
       });
@@ -779,17 +795,22 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
             let price = 0;
             if (['الأول', 'الثاني', 'الثالث'].includes(grade)) {
               price = 7;
+              if (item.separateDosiyyah) price += 1.5;
             } else {
               if (item.serviceType === 'plan' || item.serviceType === 'both') price += subject.plan_price;
               if (item.serviceType === 'prep' || item.serviceType === 'both') price += subject.prep_price;
+              if (item.separateDosiyyah) {
+                price += (item.serviceType === 'both' ? 1.0 : 0.5);
+              }
             }
             orderItems.push({
               order_id: orderId,
               teacher_name: teacher.name,
-              subject: subject.name,
+              subject: item.separateDosiyyah ? `${subject.name} (فصل الدوسيات)` : subject.name,
               grade: grade,
               service_type: item.serviceType === 'plan' ? 0 : item.serviceType === 'prep' ? 1 : 2, // 2 for package
-              price: price
+              price: price,
+              separate_dosiyyah: !!item.separateDosiyyah
             });
           }
         }
@@ -809,7 +830,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
   };
 
   const isDeliveryValid = customerInfo.deliveryType === 'pickup' || (customerInfo.deliveryType === 'delivery' && customerInfo.schoolDeliveryGov && customerInfo.schoolLocation && customerInfo.homeDeliveryGov && customerInfo.homeLocation);
-  const isPrivate = customerInfo.directorate === 'التعليم الخاص';
+  const isPrivate = customerInfo.directorate === 'التعليم الخاص' || customerInfo.directorate === 'الثقافة العسكرية';
   const isNameValid = customerInfo.name && customerInfo.name.trim().split(/\s+/).length >= 2;
   const isSchoolNameValid = customerInfo.schoolName && customerInfo.schoolName.trim().split(/\s+/).length >= 3;
   const isPhoneValid = customerInfo.phone && (!customerInfo.phone.startsWith('07') || customerInfo.phone.length === 10);
@@ -1043,21 +1064,6 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
               </div>
             )}
 
-            <div className="form-group" style={{ marginTop: '1.5rem' }}>
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span>📝 ملاحظات إضافية على الطلب</span>
-                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal' }}>(اختياري)</span>
-              </label>
-              <textarea
-                className="form-input"
-                name="notes"
-                value={customerInfo.notes || ''}
-                onChange={handleCustomerChange}
-                rows={3}
-                placeholder="إذا كان لديك أي ملاحظات أو تعليمات خاصة بالطلب، اكتبها هنا..."
-                style={{ resize: 'vertical', minHeight: '80px', fontFamily: 'inherit' }}
-              />
-            </div>
 
             {!isStep1Valid && (
               <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '1.5rem', marginBottom: '1.5rem' }}>
@@ -1087,12 +1093,6 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
 
         {step === 2 && (
           <div className="form-section fade-in">
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '2rem' }}>
-              <button className="btn btn-outline" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.95rem', borderRadius: '8px', border: '1px solid var(--primary)', color: 'var(--primary)', background: 'transparent', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }} onClick={addTeacher}>
-                <Plus size={18} /> إضافة معلم آخر
-              </button>
-            </div>
-            
             {teachers.map((teacher, index) => (
               <div key={teacher.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '2rem', marginBottom: '2rem', position: 'relative' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -1163,9 +1163,13 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                   item.grades.forEach(g => {
                     if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
                       subjectTotal += 7;
+                      if (item.separateDosiyyah) subjectTotal += 1.5;
                     } else if (subject) {
                       if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') subjectTotal += planPrice;
                       if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') subjectTotal += prepPrice;
+                      if (item.separateDosiyyah) {
+                        subjectTotal += (effectiveServiceType === 'both' ? 1.0 : 0.5);
+                      }
                     }
                   });
 
@@ -1224,7 +1228,27 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                             </div>
                           )}
 
-                          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', border: '1px solid var(--border)' }}>
+                          <div style={{ marginTop: '1.5rem', background: item.separateDosiyyah ? '#ecfdf5' : '#f8fafc', padding: '1rem', borderRadius: '8px', border: item.separateDosiyyah ? '1px solid #10b981' : '1px solid var(--border)', transition: 'all 0.2s' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontWeight: 'bold', color: item.separateDosiyyah ? '#047857' : 'var(--text)' }}>
+                              <input
+                                type="checkbox"
+                                checked={!!item.separateDosiyyah}
+                                onChange={(e) => updateItemSeparateDosiyyah(teacher.id, item.id, e.target.checked)}
+                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                              />
+                              <span>فصل كل دوسية لوحدها (يضاف 0.5 دينار لكل دوسية)</span>
+                            </label>
+                            {item.separateDosiyyah && item.grades.length > 0 && (
+                              <div style={{ fontSize: '0.85rem', color: '#065f46', marginTop: '0.5rem', marginRight: '1.75rem', fontWeight: 'bold' }}>
+                                تم إضافة تكلفة فصل الدوسيات للمجموع (+{item.grades.reduce((acc: number, g: string) => {
+                                  if (['الأول', 'الثاني', 'الثالث'].includes(g)) return acc + 1.5;
+                                  return acc + (effectiveServiceType === 'both' ? 1.0 : 0.5);
+                                }, 0)} د.أ)
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', border: '1px solid var(--border)' }}>
                             المجموع لهذه المادة: {subjectTotal} د.أ
                           </div>
                         </div>
@@ -1234,6 +1258,28 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                 })}
               </div>
             ))}
+
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '1.5rem 0 2.5rem 0' }}>
+              <button type="button" className="btn btn-outline" style={{ width: '100%', padding: '1rem', fontSize: '1.05rem', borderRadius: '12px', border: '2px dashed var(--primary)', color: 'var(--primary)', background: 'rgba(79, 70, 229, 0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }} onClick={addTeacher}>
+                <Plus size={20} /> إضافة معلم آخر
+              </button>
+            </div>
+
+            <div className="form-group" style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <span style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '1.05rem' }}>📝 ملاحظات إضافية على الطلب</span>
+                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal' }}>(اختياري - على مستوى جميع المعلمين)</span>
+              </label>
+              <textarea
+                className="form-input"
+                name="notes"
+                value={customerInfo.notes || ''}
+                onChange={handleCustomerChange}
+                rows={3}
+                placeholder="إذا كان لديك أي ملاحظات أو تعليمات خاصة بالطلب أو بالمواد والمعلمين، اكتبها هنا..."
+                style={{ resize: 'vertical', minHeight: '80px', fontFamily: 'inherit' }}
+              />
+            </div>
 
             {!isStep2Valid && (
               <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '1.5rem', marginBottom: '1.5rem' }}>
@@ -1306,17 +1352,26 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                       item.grades.forEach(g => {
                         if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
                           subjectTotal += 7;
+                          if (item.separateDosiyyah) subjectTotal += 1.5;
                         } else if (subject) {
                           if (item.serviceType === 'plan' || item.serviceType === 'both') subjectTotal += subject.plan_price;
                           if (item.serviceType === 'prep' || item.serviceType === 'both') subjectTotal += subject.prep_price;
+                          if (item.separateDosiyyah) {
+                            subjectTotal += (item.serviceType === 'both' ? 1.0 : 0.5);
+                          }
                         }
                       });
 
                       return (
                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem 0', borderBottom: idx !== teacher.items.length - 1 ? '1px dashed var(--border)' : 'none' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{subject?.name} - {item.grades.join('، ')}</span>
                             <span style={{ background: '#e2e8f0', color: '#475569', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem' }}>{serviceLabel}</span>
+                            {item.separateDosiyyah && (
+                              <span style={{ background: '#fef3c7', color: '#b45309', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold', border: '1px solid #fde68a' }}>
+                                فصل الدوسيات (+0.5 د.أ/دوسية)
+                              </span>
+                            )}
                           </div>
                           <div style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{subjectTotal} د.أ</div>
                         </div>
@@ -1367,9 +1422,11 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
               {initialOrder ? (
                 <>تم حفظ التعديلات على الطلب رقم #{initialOrder.id} بنجاح يا {customerInfo.name}.<br />سنقوم بمعالجة التحديثات الجديدة على طلبك.</>
               ) : (
-                <>تم تأكيد طلبك بنجاح يا {customerInfo.name}.<br />تم استلام طلبك وسنقوم بالتواصل معك قريباً.<br />
-                {customerInfo.deliveryType === 'delivery' && (
+                <>تم تسجيل طلبك بنجاح يا {customerInfo.name}.<br />
+                {customerInfo.deliveryType === 'delivery' ? (
                   <span style={{ color: '#0369a1', fontWeight: 'bold' }}>سوف يتم توصيل طلبك خلال 48 - 72 ساعة.</span>
+                ) : (
+                  <span style={{ color: '#0369a1', fontWeight: 'bold' }}>وإمكانية استلامه بعد 24 ساعة من الآن من المكتبة.</span>
                 )}</>
               )}
             </p>

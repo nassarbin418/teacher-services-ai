@@ -74,7 +74,8 @@ CREATE TABLE IF NOT EXISTS order_items (
   grade TEXT NOT NULL,
   service_type INTEGER NOT NULL,
   price NUMERIC NOT NULL,
-  quantity INTEGER DEFAULT 1
+  quantity INTEGER DEFAULT 1,
+  separate_dosiyyah BOOLEAN DEFAULT false
 );
 
 -- Create Notifications Table
