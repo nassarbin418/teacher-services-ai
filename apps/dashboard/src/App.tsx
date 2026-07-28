@@ -244,7 +244,7 @@ function App() {
       const statuses = [
         'جديد',
         'في مرحلة الطباعة',
-        'مع شركة التوصيل / جاهز للاستلام',
+        'جاهز وهو مع شركة التوصيل / جاهز للاستلام من المكتبة',
         'مكتمل / تم التسليم',
         'مرفوض من المكتبة',
         'تم الغاء الطلب'
@@ -614,11 +614,11 @@ function App() {
                 <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f59e0b', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 1).length}</p>
               </div>
               <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #9333ea', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('2_delivery')}>
-                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>مع شركة التوصيل</h3>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>جاهز وهو مع شركة التوصيل</h3>
                 <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9333ea', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 2 && o.delivery_type === 1).length}</p>
               </div>
               <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #8b5cf6', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('2_pickup')}>
-                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>للاستلام من المكتبة</h3>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>جاهز للاستلام من المكتبة</h3>
                 <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#8b5cf6', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 2 && o.delivery_type !== 1).length}</p>
               </div>
               <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #10b981', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('3')}>
@@ -668,8 +668,8 @@ function App() {
                   <option value="all">جميع الحالات</option>
                   <option value="0">جديد</option>
                   <option value="1">في مرحلة الطباعة</option>
-                  <option value="2_delivery">مع شركة التوصيل</option>
-                  <option value="2_pickup">للاستلام من المكتبة</option>
+                  <option value="2_delivery">جاهز وهو مع شركة التوصيل</option>
+                  <option value="2_pickup">جاهز للاستلام من المكتبة</option>
                   <option value="3">مكتمل / تم التسليم</option>
                   <option value="4">مرفوض من المكتبة</option>
                   <option value="5">تم الغاء الطلب</option>
@@ -832,7 +832,7 @@ function App() {
                               <option value="0" style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 'bold' }}>جديد</option>
                               <option value="1" style={{ background: '#fef3c7', color: '#b45309' }}>في مرحلة الطباعة</option>
                               <option value="2" style={{ background: '#f3e8ff', color: '#6b21a8' }}>
-                                {(String(order.delivery_type) === '1' || String(order.delivery_type) === 'true') ? 'مع شركة التوصيل' : 'جاهز للاستلام من المكتبة'}
+                                {(String(order.delivery_type) === '1' || String(order.delivery_type) === 'true') ? 'جاهز وهو مع شركة التوصيل' : 'جاهز للاستلام من المكتبة'}
                               </option>
                               <option value="3" style={{ background: '#d1fae5', color: '#047857' }}>مكتمل / تم التسليم</option>
                               <option value="4" style={{ background: '#f1f5f9', color: '#475569' }}>مرفوض من المكتبة</option>
