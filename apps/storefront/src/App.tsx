@@ -4,6 +4,15 @@ import { supabase } from './lib/supabase';
 
 const GRADES = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر', 'الحادي عشر (أكاديمي)', 'الثاني عشر (أكاديمي)'];
 
+const STAGE_PACKAGES = [
+  { id: 'plan_no_art', name: 'بكج خطة وتحليل بدون فن ورياضة', price: 3 },
+  { id: 'all_no_art', name: 'بكج خطط وتحليل وتحضير بدون فن ورياضة', price: 7 },
+  { id: 'prep_no_art', name: 'بكج تحضير فقط بدون فن ورياضة', price: 5 },
+  { id: 'plan_art', name: 'بكج خطط وتحليل مع فن ورياضة', price: 5 },
+  { id: 'all_art', name: 'بكج خطط وتحليل وتحضير مع فن ورياضة', price: 6 },
+  { id: 'prep_art', name: 'بكج تحضير فقط مع فن ورياضة', price: 7 },
+];
+
 
 interface CustomerInfo {
   name: string;
@@ -34,6 +43,9 @@ interface OrderItem {
 interface Teacher {
   id: string;
   name: string;
+  isStageTeacher?: boolean;
+  stageGrade?: string;
+  stagePackage?: string;
   items: OrderItem[];
 }
 
@@ -594,24 +606,33 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
         initialOrder.order_items.forEach((item: any, idx: number) => {
           const tName = item.teacher_name || 'معلم 1';
           if (!teacherMap[tName]) {
-            teacherMap[tName] = { id: 't_' + idx, name: tName, items: [] };
+            teacherMap[tName] = { id: 't_' + idx, name: tName, items: [], isStageTeacher: false };
           }
-          const subObj = dbSubjects.find(s => s.name === item.subject);
-          const subId = subObj ? subObj.id : item.subject;
-          const sType = item.service_type === 0 ? 'plan' : item.service_type === 1 ? 'prep' : 'both';
           
-          const existingItem = teacherMap[tName].items.find(i => String(i.subjectId) === String(subId) && i.serviceType === sType);
-          if (existingItem) {
-            if (!existingItem.grades.includes(item.grade)) {
-              existingItem.grades.push(item.grade);
-            }
+          if (String(item.subject).includes('معلم مرحلة')) {
+            teacherMap[tName].isStageTeacher = true;
+            teacherMap[tName].stageGrade = item.grade;
+            const pkgNameMatch = String(item.subject).replace('معلم مرحلة - ', '').trim();
+            const foundPkg = STAGE_PACKAGES.find(p => p.name === pkgNameMatch);
+            if (foundPkg) teacherMap[tName].stagePackage = foundPkg.id;
           } else {
-            teacherMap[tName].items.push({
-              id: 'item_' + Math.random().toString(36).substr(2, 9),
-              subjectId: subId,
-              grades: [item.grade],
-              serviceType: sType
-            });
+            const subObj = dbSubjects.find(s => s.name === item.subject);
+            const subId = subObj ? subObj.id : item.subject;
+            const sType = item.service_type === 0 ? 'plan' : item.service_type === 1 ? 'prep' : 'both';
+            
+            const existingItem = teacherMap[tName].items.find(i => String(i.subjectId) === String(subId) && i.serviceType === sType);
+            if (existingItem) {
+              if (!existingItem.grades.includes(item.grade)) {
+                existingItem.grades.push(item.grade);
+              }
+            } else {
+              teacherMap[tName].items.push({
+                id: 'item_' + Math.random().toString(36).substr(2, 9),
+                subjectId: subId,
+                grades: [item.grade],
+                serviceType: sType
+              });
+            }
           }
         });
         const teachersList = Object.values(teacherMap);
@@ -642,6 +663,9 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
   const addTeacher = () => setTeachers([...teachers, { id: `t${Date.now()}`, name: '', items: [] }]);
   const removeTeacher = (id: string) => { if (teachers.length > 1) setTeachers(teachers.filter(t => t.id !== id)); };
   const updateTeacherName = (id: string, name: string) => setTeachers(teachers.map(t => t.id === id ? { ...t, name } : t));
+  const updateTeacherIsStage = (id: string, isStage: boolean) => setTeachers(teachers.map(t => t.id === id ? { ...t, isStageTeacher: isStage } : t));
+  const updateTeacherStageGrade = (id: string, grade: string) => setTeachers(teachers.map(t => t.id === id ? { ...t, stageGrade: grade } : t));
+  const updateTeacherStagePackage = (id: string, pkg: string) => setTeachers(teachers.map(t => t.id === id ? { ...t, stagePackage: pkg } : t));
 
   const toggleSubjectForTeacher = (teacherId: string, subjectName: string) => {
     const subject = dbSubjects.find((s: any) => s.name === subjectName);
@@ -676,27 +700,34 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
   const calculateTotal = () => {
     let total = 0;
     teachers.forEach(teacher => {
-      teacher.items.forEach(item => {
-        const subject = dbSubjects.find(s => s.id === item.subjectId);
-        if (!subject) return;
+      if (teacher.isStageTeacher) {
+        if (teacher.stagePackage) {
+          const pkg = STAGE_PACKAGES.find(p => p.id === teacher.stagePackage);
+          if (pkg) total += pkg.price;
+        }
+      } else {
+        teacher.items.forEach(item => {
+          const subject = dbSubjects.find(s => s.id === item.subjectId);
+          if (!subject) return;
 
-        const effectiveServiceType = (subject.plan_price > 0 && subject.prep_price > 0)
-          ? item.serviceType
-          : (subject.plan_price > 0 ? 'plan' : 'prep');
+          const effectiveServiceType = (subject.plan_price > 0 && subject.prep_price > 0)
+            ? item.serviceType
+            : (subject.plan_price > 0 ? 'plan' : 'prep');
 
-        item.grades.forEach(g => {
-          if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
-            total += 7; // Fixed package price
-            if (item.separateDosiyyah) total += 1.5;
-          } else {
-            if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') total += subject.plan_price;
-            if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') total += subject.prep_price;
-            if (item.separateDosiyyah) {
-              total += (effectiveServiceType === 'both' ? 1.0 : 0.5);
+          item.grades.forEach(g => {
+            if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
+              total += 7; // Fixed package price
+              if (item.separateDosiyyah) total += 1.5;
+            } else {
+              if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') total += subject.plan_price;
+              if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') total += subject.prep_price;
+              if (item.separateDosiyyah) {
+                total += (effectiveServiceType === 'both' ? 1.0 : 0.5);
+              }
             }
-          }
+          });
         });
-      });
+      }
     });
     const deliveryCost = customerInfo.deliveryType === 'delivery' ? 3 : 0;
     return total + deliveryCost;
@@ -786,32 +817,48 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
         });
       }
 
-      const orderItems = [];
+      const orderItems: any[] = [];
       for (const teacher of teachers) {
-        for (const item of teacher.items) {
-          const subject = dbSubjects.find(s => s.id === item.subjectId);
-          if (!subject) continue;
-          for (const grade of item.grades) {
-            let price = 0;
-            if (['الأول', 'الثاني', 'الثالث'].includes(grade)) {
-              price = 7;
-              if (item.separateDosiyyah) price += 1.5;
-            } else {
-              if (item.serviceType === 'plan' || item.serviceType === 'both') price += subject.plan_price;
-              if (item.serviceType === 'prep' || item.serviceType === 'both') price += subject.prep_price;
-              if (item.separateDosiyyah) {
-                price += (item.serviceType === 'both' ? 1.0 : 0.5);
+        if (teacher.isStageTeacher) {
+          if (!teacher.stageGrade || !teacher.stagePackage) continue;
+          const pkg = STAGE_PACKAGES.find(p => p.id === teacher.stagePackage);
+          if (!pkg) continue;
+          
+          orderItems.push({
+            order_id: orderId,
+            teacher_name: teacher.name,
+            subject: `معلم مرحلة - ${pkg.name}`,
+            grade: teacher.stageGrade,
+            service_type: 2, // 2 for package
+            price: pkg.price,
+            separate_dosiyyah: false
+          });
+        } else {
+          for (const item of teacher.items) {
+            const subject = dbSubjects.find(s => s.id === item.subjectId);
+            if (!subject) continue;
+            for (const grade of item.grades) {
+              let price = 0;
+              if (['الأول', 'الثاني', 'الثالث'].includes(grade)) {
+                price = 7;
+                if (item.separateDosiyyah) price += 1.5;
+              } else {
+                if (item.serviceType === 'plan' || item.serviceType === 'both') price += subject.plan_price;
+                if (item.serviceType === 'prep' || item.serviceType === 'both') price += subject.prep_price;
+                if (item.separateDosiyyah) {
+                  price += (item.serviceType === 'both' ? 1.0 : 0.5);
+                }
               }
+              orderItems.push({
+                order_id: orderId,
+                teacher_name: teacher.name,
+                subject: item.separateDosiyyah ? `${subject.name} (فصل الدوسيات)` : subject.name,
+                grade: grade,
+                service_type: item.serviceType === 'plan' ? 0 : item.serviceType === 'prep' ? 1 : 2, // 2 for package
+                price: price,
+                separate_dosiyyah: !!item.separateDosiyyah
+              });
             }
-            orderItems.push({
-              order_id: orderId,
-              teacher_name: teacher.name,
-              subject: item.separateDosiyyah ? `${subject.name} (فصل الدوسيات)` : subject.name,
-              grade: grade,
-              service_type: item.serviceType === 'plan' ? 0 : item.serviceType === 'prep' ? 1 : 2, // 2 for package
-              price: price,
-              separate_dosiyyah: !!item.separateDosiyyah
-            });
           }
         }
       }
@@ -836,7 +883,14 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
   const isPhoneValid = customerInfo.phone && (!customerInfo.phone.startsWith('07') || customerInfo.phone.length === 10);
   const isPhone2Valid = customerInfo.phone2 && (!customerInfo.phone2.startsWith('07') || customerInfo.phone2.length === 10);
   const isStep1Valid = isNameValid && isSchoolNameValid && isPhoneValid && isPhone2Valid && customerInfo.schoolType && customerInfo.directorate && customerInfo.governorate && (isPrivate || (customerInfo.district && (customerInfo.district !== 'إضافة' || customerInfo.otherDistrict))) && isDeliveryValid;
-  const isStep2Valid = teachers.every(t => t.name && t.name.trim().split(/\s+/).length >= 2 && t.items.length > 0 && t.items.every(i => i.grades.length > 0));
+  const isStep2Valid = teachers.every(t => 
+    t.name && 
+    t.name.trim().split(/\s+/).length >= 2 && 
+    (t.isStageTeacher 
+      ? (t.stageGrade && t.stagePackage) 
+      : (t.items.length > 0 && t.items.every(i => i.grades.length > 0))
+    )
+  );
   const isStep3Valid = true;
 
   return (
@@ -1133,19 +1187,67 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                   />
                 </div>
 
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '0.75rem', color: 'var(--primary)', fontSize: '1.05rem' }}>نوع المعلم:</label>
+                  <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: !teacher.isStageTeacher ? '#e0e7ff' : '#f8fafc', padding: '0.8rem 1rem', borderRadius: '8px', border: !teacher.isStageTeacher ? '2px solid var(--primary)' : '1px solid var(--border)', flex: 1, minWidth: '200px' }}>
+                      <input type="radio" checked={!teacher.isStageTeacher} onChange={() => updateTeacherIsStage(teacher.id, false)} />
+                      <span style={{ fontWeight: 'bold' }}>معلم مبحث (مواد محددة)</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: teacher.isStageTeacher ? '#e0e7ff' : '#f8fafc', padding: '0.8rem 1rem', borderRadius: '8px', border: teacher.isStageTeacher ? '2px solid var(--primary)' : '1px solid var(--border)', flex: 1, minWidth: '200px' }}>
+                      <input type="radio" checked={!!teacher.isStageTeacher} onChange={() => updateTeacherIsStage(teacher.id, true)} />
+                      <span style={{ fontWeight: 'bold' }}>معلم مرحلة (يدرس جميع المواد)</span>
+                    </label>
+                  </div>
+                </div>
+
                 <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
 
-                <label style={{ fontWeight: 'bold', color: 'var(--primary)', marginBottom: '1rem', display: 'block', fontSize: '1.05rem' }}>المواد المضافة:</label>
+                {teacher.isStageTeacher ? (
+                  <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '1.5rem' }}>
+                    <div className="form-group">
+                      <label style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>الصف: <span style={{ color: 'red' }}>*</span></label>
+                      <select 
+                        className="form-select" 
+                        value={teacher.stageGrade || ''} 
+                        onChange={e => updateTeacherStageGrade(teacher.id, e.target.value)}
+                        style={{ marginTop: '0.5rem' }}
+                      >
+                        <option value="">اختر الصف...</option>
+                        <option value="الأول">الأول</option>
+                        <option value="الثاني">الثاني</option>
+                        <option value="الثالث">الثالث</option>
+                      </select>
+                    </div>
+                    
+                    {teacher.stageGrade && (
+                      <div className="form-group" style={{ marginTop: '1.5rem' }}>
+                        <label style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>اختر البكج المناسب: <span style={{ color: 'red' }}>*</span></label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '0.75rem' }}>
+                          {STAGE_PACKAGES.map(pkg => (
+                            <label key={pkg.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: teacher.stagePackage === pkg.id ? 'white' : '#f1f5f9', padding: '1rem', borderRadius: '8px', border: teacher.stagePackage === pkg.id ? '2px solid var(--primary)' : '1px solid transparent', boxShadow: teacher.stagePackage === pkg.id ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}>
+                              <input type="radio" name={`package_${teacher.id}`} checked={teacher.stagePackage === pkg.id} onChange={() => updateTeacherStagePackage(teacher.id, pkg.id)} />
+                              <span style={{ flex: 1, fontWeight: 'bold', color: teacher.stagePackage === pkg.id ? 'var(--primary)' : 'var(--text)' }}>{pkg.name}</span>
+                              <span style={{ fontWeight: 'bold', color: '#059669', fontSize: '1.1rem' }}>{pkg.price} د.أ</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <label style={{ fontWeight: 'bold', color: 'var(--primary)', marginBottom: '1rem', display: 'block', fontSize: '1.05rem' }}>المواد المضافة:</label>
 
-                <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px dashed var(--border)', marginBottom: '1.5rem' }}>
-                  <label style={{ fontWeight: 'bold', color: 'var(--primary)', marginBottom: '1rem', display: 'block', fontSize: '0.95rem' }}>+ إضافة مادة جديدة لهذا المعلم</label>
-                  <SearchableSelect
-                    options={dbSubjects.map(s => s.name)}
-                    value=""
-                    onChange={(val: string) => toggleSubjectForTeacher(teacher.id, val)}
-                    placeholder="ابحث عن مادة لإضافتها..."
-                  />
-                </div>
+                    <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px dashed var(--border)', marginBottom: '1.5rem' }}>
+                      <label style={{ fontWeight: 'bold', color: 'var(--primary)', marginBottom: '1rem', display: 'block', fontSize: '0.95rem' }}>+ إضافة مادة جديدة لهذا المعلم</label>
+                      <SearchableSelect
+                        options={dbSubjects.map(s => s.name)}
+                        value=""
+                        onChange={(val: string) => toggleSubjectForTeacher(teacher.id, val)}
+                        placeholder="ابحث عن مادة لإضافتها..."
+                      />
+                    </div>
 
                 {teacher.items.map(item => {
                   const subject = dbSubjects.find(s => s.id === item.subjectId);
@@ -1256,6 +1358,8 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                     </div>
                   );
                 })}
+                  </>
+                )}
               </div>
             ))}
 
@@ -1286,8 +1390,9 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                 <p style={{ color: '#ef4444', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>الرجاء إكمال/تصحيح الأخطاء التالية للمتابعة:</p>
                 <ul style={{ color: '#ef4444', margin: 0, paddingRight: '1.5rem', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                   {teachers.some(t => !t.name || t.name.trim().split(/\s+/).length < 2) && <li>إدخال أسماء جميع المعلمين (يجب أن يكون كل اسم من مقطعين على الأقل)</li>}
-                  {teachers.some(t => t.items.length === 0) && <li>إضافة مادة واحدة على الأقل لكل معلم</li>}
-                  {teachers.some(t => t.items.some(i => i.grades.length === 0)) && <li>اختيار صف واحد على الأقل لكل مادة مضافة</li>}
+                  {teachers.some(t => !t.isStageTeacher && t.items.length === 0) && <li>إضافة مادة واحدة على الأقل لمعلم المبحث</li>}
+                  {teachers.some(t => !t.isStageTeacher && t.items.some(i => i.grades.length === 0)) && <li>اختيار صف واحد على الأقل لكل مادة مضافة</li>}
+                  {teachers.some(t => t.isStageTeacher && (!t.stageGrade || !t.stagePackage)) && <li>اختيار الصف والبكج لمعلم المرحلة</li>}
                 </ul>
               </div>
             )}
@@ -1341,8 +1446,21 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                     اسم المعلم: {teacher.name}
                   </div>
                   <div style={{ padding: '1rem 1.5rem' }}>
-                    {teacher.items.map((item, idx) => {
-                      const subject = dbSubjects.find(s => s.id === item.subjectId);
+                    {teacher.isStageTeacher ? (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem 0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>معلم مرحلة - الصف {teacher.stageGrade}</span>
+                          <span style={{ background: '#e2e8f0', color: '#475569', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem' }}>
+                            {STAGE_PACKAGES.find(p => p.id === teacher.stagePackage)?.name}
+                          </span>
+                        </div>
+                        <div style={{ fontWeight: 'bold', color: 'var(--primary)' }}>
+                          {STAGE_PACKAGES.find(p => p.id === teacher.stagePackage)?.price} د.أ
+                        </div>
+                      </div>
+                    ) : (
+                      teacher.items.map((item, idx) => {
+                        const subject = dbSubjects.find(s => s.id === item.subjectId);
                       let subjectTotal = 0;
                       let serviceLabel = '';
                       if (item.serviceType === 'plan') serviceLabel = 'خطة';
@@ -1376,7 +1494,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                           <div style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{subjectTotal} د.أ</div>
                         </div>
                       );
-                    })}
+                    }))}
                   </div>
                 </div>
               ))}
