@@ -13,7 +13,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState('');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
 
   // Subjects State
@@ -452,7 +452,13 @@ function App() {
       formattedDate.includes(term) ||
       matchesItems;
 
-    const matchesStatus = statusFilter === 'all' || order.status.toString() === statusFilter;
+    const matchesStatus = statusFilter === 'all' 
+      ? true 
+      : statusFilter === '2_delivery' 
+        ? order.status === 2 && order.delivery_type === 1 
+        : statusFilter === '2_pickup' 
+          ? order.status === 2 && order.delivery_type !== 1 
+          : order.status.toString() === statusFilter;
     const matchesDate = !dateFilter || isoDate === dateFilter;
 
     return matchesSearch && matchesStatus && matchesDate;
@@ -607,9 +613,13 @@ function App() {
                 <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>في مرحلة الطباعة</h3>
                 <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f59e0b', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 1).length}</p>
               </div>
-              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #9333ea', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('2')}>
-                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>مع شركة التوصيل / جاهز للاستلام</h3>
-                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9333ea', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 2).length}</p>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #9333ea', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('2_delivery')}>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>مع شركة التوصيل</h3>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9333ea', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 2 && o.delivery_type === 1).length}</p>
+              </div>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #8b5cf6', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('2_pickup')}>
+                <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>جاهز للاستلام</h3>
+                <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#8b5cf6', margin: 0, marginTop: 'auto' }}>{orders.filter(o => o.status === 2 && o.delivery_type !== 1).length}</p>
               </div>
               <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', borderBottom: '4px solid #10b981', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} onClick={() => setStatusFilter('3')}>
                 <h3 style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: '0 0 0.5rem 0' }}>مكتمل</h3>
@@ -658,7 +668,8 @@ function App() {
                   <option value="all">جميع الحالات</option>
                   <option value="0">جديد</option>
                   <option value="1">في مرحلة الطباعة</option>
-                  <option value="2">مع شركة التوصيل / جاهز للاستلام</option>
+                  <option value="2_delivery">مع شركة التوصيل</option>
+                  <option value="2_pickup">جاهز للاستلام</option>
                   <option value="3">مكتمل / تم التسليم</option>
                   <option value="4">مرفوض من المكتبة</option>
                   <option value="5">تم الغاء الطلب</option>
@@ -667,8 +678,8 @@ function App() {
 
               <div className="filter-select" style={{ display: 'flex', alignItems: 'center' }}>
                 <select className="status-filter" value={sortOrder} onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')} style={{ height: '100%' }}>
-                  <option value="asc">الترتيب: من الأقدم للأحدث ⬆</option>
                   <option value="desc">الترتيب: من الأحدث للأقدم ⬇</option>
+                  <option value="asc">الترتيب: من الأقدم للأحدث ⬆</option>
                 </select>
               </div>
             </div>

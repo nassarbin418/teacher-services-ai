@@ -9,7 +9,7 @@ const STAGE_PACKAGES = [
   { id: 'all_no_art', name: 'بكج خطط وتحليل وتحضير بدون فن ورياضة', price: 7 },
   { id: 'prep_no_art', name: 'بكج تحضير فقط بدون فن ورياضة', price: 5 },
   { id: 'plan_art', name: 'بكج خطط وتحليل مع فن ورياضة', price: 5 },
-  { id: 'all_art', name: 'بكج خطط وتحليل وتحضير مع فن ورياضة', price: 6 },
+  { id: 'all_art', name: 'بكج خطط وتحليل وتحضير مع فن ورياضة', price: 9 },
   { id: 'prep_art', name: 'بكج تحضير فقط مع فن ورياضة', price: 7 },
 ];
 
@@ -221,7 +221,7 @@ function LandingScreen({ onGo }: any) {
         <img src="logo.jpg" alt="Logo" style={{ width: '160px', display: 'block', margin: '0 auto 1.5rem auto' }} />
         <h1 style={{ fontSize: '2.2rem', color: 'var(--primary)', marginBottom: '0.5rem' }}>مكتبة نصار لخدمات المعلمين</h1>
         <p style={{ color: 'var(--text-light)', marginBottom: '1rem', fontSize: '1.1rem', lineHeight: '1.6' }}>
-          نقدم لك خطة تجهيز الخطط الفصلية وتحليل المحتوى وتحضير الدروس باعلى المواصفات 
+          نقدم لك خدمة تجهيز الخطط الفصلية وتحليل المحتوى وتحضير الدروس بأعلى المواصفات 
         </p>
         <p style={{ color: 'var(--primary)', fontWeight: 'bold', marginBottom: '1rem', fontSize: '1.2rem' }}>أهلاً بك.. اختر الخدمة التي تريدها للبدء</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -580,6 +580,12 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  useEffect(() => {
+    if (step === 2) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [step]);
 
   useEffect(() => {
     if (initialOrder && dbSubjects.length > 0) {
