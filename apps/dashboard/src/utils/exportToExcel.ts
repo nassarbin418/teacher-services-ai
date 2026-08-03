@@ -12,14 +12,33 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // Ensure Right-To-Left view for Arabic sheet
     worksheet.views = [{ rightToLeft: true }];
+    
+    // Force fit-to-width for A4 Landscape printing
+    worksheet.pageSetup = {
+      orientation: 'landscape',
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0
+    };
+    
+    // Adjust Column Widths to prevent awkward wrapping
+    worksheet.getColumn(1).width = 22; // A (المدرسة/اسم المعلم)
+    worksheet.getColumn(2).width = 26; // B (المنطقة/المادة - تكبير)
+    worksheet.getColumn(3).width = 30; // C (الاسم/الصف/موقع البيت - تكبير)
+    worksheet.getColumn(4).width = 34; // D (نوع التعليم/نوع الخدمة - تكبير إضافي لمنع التفاف خطة وتحضير)
+    worksheet.getColumn(5).width = 15; // E (جنس المتعلم/السعر)
+    worksheet.getColumn(6).width = 12; // F (Side Labels - reduced)
+    worksheet.getColumn(7).width = 16; // G (Side Values - reduced)
 
-    // Format createdAt date & time string with ' | ' separator
-    let formattedCreatedAt = '—';
+    // Format createdAt date strings (One with time, one without)
+    let formattedCreatedAtDateOnly = '—';
+    let formattedCreatedAtWithTime = '—';
     if (order.created_at) {
       const d = new Date(order.created_at);
       const dateStr = d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric' });
       const timeStr = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
-      formattedCreatedAt = `${dateStr} | ${timeStr}`;
+      formattedCreatedAtDateOnly = dateStr;
+      formattedCreatedAtWithTime = `${dateStr} | ${timeStr}`;
     }
 
     // Service Type Label Mapper
@@ -59,11 +78,38 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     // --- 1. Fill Order Info (معلومات الطلب) ---
     // Cell A3: Order ID
     const cellA3 = worksheet.getCell('A3');
-    cellA3.value = `#${order.id || ''}`;
-
+    cellA3.value = `#${order.daily_order_number || order.id || ''}`;
+    setValueStyle(cellA3);
+    
     // Cell B3: Order Creation Date
     const cellB3 = worksheet.getCell('B3');
-    cellB3.value = formattedCreatedAt;
+    cellB3.value = formattedCreatedAtWithTime;
+    setValueStyle(cellB3);
+
+    // --- Side Summary Section (F2:G7) ---
+    const govText = order.governorate === 'عمان' ? 'عمان' : (order.governorate || '—');
+    const sideLabels = ['المحافظة:', 'المنطقة:', 'رقم الطلب:', 'تاريخ الطلب:', 'رقم الهاتف:', 'قيمة الطلب:'];
+    const sideValues = [
+      govText,
+      order.district || '—',
+      `#${order.daily_order_number || order.id || ''}`,
+      formattedCreatedAtDateOnly,
+      order.phone ? String(order.phone) : '—',
+      `${order.total_amount || 0} د.أ`
+    ];
+
+    sideLabels.forEach((label, i) => {
+      const r = 2 + i;
+      const lblCell = worksheet.getCell(`F${r}`);
+      lblCell.value = label;
+      lblCell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF000000' } };
+      lblCell.alignment = { vertical: 'middle', horizontal: 'left' };
+      
+      const valCell = worksheet.getCell(`G${r}`);
+      valCell.value = sideValues[i];
+      valCell.font = { name: 'Segoe UI', size: 12, bold: false, color: { argb: 'FF0F172A' } };
+      valCell.alignment = { vertical: 'middle', horizontal: 'right' };
+    });
 
     // Cells C2:E2 (Merged Header for Order Notes - next to date on the left)
     safeMerge(2, 3, 2, 5);
@@ -73,12 +119,17 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // Cells C3:E3 (Merged Value for Order Notes)
     safeMerge(3, 3, 3, 5);
+    worksheet.getRow(3).height = 65; // Make note row taller for multiple lines
     const cellC3 = worksheet.getCell('C3');
     cellC3.value = order.notes || 'لا توجد ملاحظات';
     ['C3', 'D3', 'E3'].forEach(addr => setValueStyle(worksheet.getCell(addr)));
 
     // --- 2. Fill Customer Info (معلومات العميل) ---
-    // Row 7 (Values 1): المدرسة | اللواء/المنطقة | الاسم | نوع التعليم | نوع المدرسة
+    // Override template header for school type
+    worksheet.getCell('E6').value = 'جنس المُتعلم';
+    
+    // Row 7 (Values 1): المدرسة | اللواء/المنطقة | الاسم | نوع التعليم | جنس المُتعلم
+    worksheet.getRow(7).height = 40; // Increased for multiple line school names
     worksheet.getCell('A7').value = order.school_name || '';
     worksheet.getCell('B7').value = order.district || '—';
     worksheet.getCell('C7').value = order.customer_name || '';
@@ -120,9 +171,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     if (items && items.length > 0) {
       items.forEach((item: any, index: number) => {
         const r = 11 + index;
-        if (index > 0) {
-          worksheet.getRow(r).height = 24;
-        }
+        worksheet.getRow(r).height = 35; // Increased for better readability on multiple lines
 
         const cellA = worksheet.getCell(`A${r}`); cellA.style = {}; cellA.value = item.teacher_name || ''; setDataStyle(cellA);
         const subVal = String(item.subject || '');
@@ -219,7 +268,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       order.phone ? String(order.phone) : '',
       order.phone2 ? String(order.phone2) : 'غير متوفر'
     ];
-    worksheet.getRow(currentRowIndex).height = 24;
+    worksheet.getRow(currentRowIndex).height = 50; // Increased for multiple line addresses
     ciValues.forEach((val, i) => {
       const cell = worksheet.getCell(currentRowIndex, i + 1);
       cell.style = {};
@@ -319,16 +368,17 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // --- 6. Force Apply Static Styles at the Very End ---
     // This prevents ExcelJS shared style mutation bugs when many items overwrite cells that shared styles with headers in the template
-    ['A2', 'B2', 'C2', 'D2', 'E2', 'A6', 'B6', 'C6', 'D6', 'E6', 'A10', 'B10', 'C10', 'D10', 'E10'].forEach(ref => {
+    // This prevents ExcelJS shared style mutation bugs when many items overwrite cells that shared styles with headers in the template
+    ['C2', 'D2', 'E2', 'A6', 'B6', 'C6', 'D6', 'E6', 'A10', 'B10', 'C10', 'D10', 'E10'].forEach(ref => {
       setHeaderStyle(worksheet.getCell(ref));
     });
-    ['A3', 'B3', 'C3', 'D3', 'E3', 'A7', 'B7', 'C7', 'D7', 'E7'].forEach(ref => {
+    ['C3', 'D3', 'E3', 'A7', 'B7', 'C7', 'D7', 'E7'].forEach(ref => {
       setValueStyle(worksheet.getCell(ref));
     });
 
     // Generate Excel File buffer
     const buffer = await workbook.xlsx.writeBuffer();
-    const fileName = `طلب_${order.id || 'جديد'}.xlsx`;
+    const fileName = `طلب_${order.daily_order_number || order.id || 'جديد'}.xlsx`;
 
     try {
       // Use modern File System Access API if supported (prompts "Save As" dialogue)
@@ -364,5 +414,214 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
   } catch (error) {
     console.error('Error generating excel from template:', error);
+  }
+};
+
+export const exportDeliveryReports = async (orders: any[]) => {
+  const ammanOrders = orders.filter(o => o.governorate === 'عمان' || o.governorate === 'محافظة عمان');
+  const otherOrders = orders.filter(o => o.governorate !== 'عمان' && o.governorate !== 'محافظة عمان');
+
+  const createWorkbook = async (data: any[], title: string, filename: string) => {
+    if (data.length === 0) return;
+    const isAmman = title.includes('عمان');
+    
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('التوصيل', { views: [{ rightToLeft: true }] });
+    
+    // Define columns conditionally
+    const cols: any[] = [
+      { header: '', key: 'margin', width: 2 }, // Right Margin
+      { header: 'الرقم', key: 'seq', width: 8 },
+      { header: 'رقم الطلب', key: 'id', width: 15 },
+      { header: 'تاريخ الطلب', key: 'date', width: 15 },
+    ];
+    
+    if (!isAmman) {
+      cols.push({ header: 'المحافظة', key: 'gov', width: 15 });
+    }
+    
+    cols.push(
+      { header: 'اسم المنطقة', key: 'area', width: 20 },
+      { header: 'المدرسة', key: 'school', width: 25 },
+      { header: 'اسم المعلم/ة', key: 'customer', width: 25 },
+      { header: 'المبلغ', key: 'total', width: 12 },
+      { header: 'رقم الهاتف', key: 'phone', width: 15 }
+    );
+    
+    worksheet.columns = cols;
+
+    let sumTotal = 0;
+    data.forEach((order, index) => {
+      let d = '';
+      if (order.created_at) {
+        const dateObj = new Date(order.created_at);
+        d = `${dateObj.toLocaleDateString('ar-EG')}`;
+      }
+      
+      const orderTotal = Number(order.total_amount) || 0;
+      sumTotal += orderTotal;
+      
+      const rowData: any = {
+        margin: '',
+        seq: index + 1,
+        id: `#${order.daily_order_number || order.id || ''}`,
+        date: d,
+        area: order.district || '',
+        school: order.school_name || '',
+        customer: order.customer_name || '',
+        total: orderTotal,
+        phone: String(order.phone || '')
+      };
+      
+      if (!isAmman) {
+        rowData.gov = order.governorate || '';
+      }
+      
+      worksheet.addRow(rowData);
+    });
+
+    // Insert 3 rows at the top for the header (adds top margin)
+    worksheet.spliceRows(1, 0, [], [], []);
+
+    const today = new Date();
+    const daysAr = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const dateStr = today.toLocaleDateString('en-GB');
+    const dayStr = daysAr[today.getDay()];
+
+    // At the top - Date on the right (B2), Day on the left
+    worksheet.pageSetup = { printTitlesRow: '4:4' };
+    
+    // At the top - Date on the right (B2:D2)
+    worksheet.mergeCells('B2:D2');
+    const topDateCell = worksheet.getCell('B2');
+    topDateCell.value = `التاريخ : ${dateStr}`;
+    topDateCell.font = { name: 'Segoe UI', size: 14, bold: true };
+    topDateCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    const middleTitle = isAmman ? 'عمان' : 'محافظات';
+    worksheet.mergeCells('E2:F2');
+    const titleCell = worksheet.getCell('E2');
+    titleCell.value = middleTitle;
+    titleCell.font = { name: 'Segoe UI', size: 16, bold: true };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    const lastColLetter = isAmman ? 'I' : 'J';
+    const prevColLetter = isAmman ? 'H' : 'I';
+    
+    // Day on the left (merged over the last two columns)
+    worksheet.mergeCells(`${prevColLetter}2:${lastColLetter}2`);
+    const topDayCell = worksheet.getCell(`${prevColLetter}2`);
+    topDayCell.value = `اليوم : ${dayStr}`;
+    topDayCell.font = { name: 'Segoe UI', size: 14, bold: true };
+    topDayCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // Style the Table Header (now at row 4)
+    const headerRow = worksheet.getRow(4);
+    headerRow.height = 25;
+
+    // Style all cells in the table
+    const maxCol = isAmman ? 9 : 10;
+    const phoneColIdx = isAmman ? 9 : 10;
+    
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber >= 4 && rowNumber <= data.length + 4) {
+        row.eachCell((cell, colNumber) => {
+          if (colNumber > 1 && colNumber <= maxCol) { // Skip margin column
+            cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            if (rowNumber === 4) {
+              cell.font = { name: 'Segoe UI', size: 12, bold: true };
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+            } else if (rowNumber > 4) {
+              cell.font = { name: 'Segoe UI', size: 11, color: { argb: 'FF0F172A' } };
+              if (colNumber === phoneColIdx) cell.numFmt = '@'; // Phone as string
+            }
+          }
+        });
+        if (rowNumber > 4) {
+          row.height = 30; // Better row height for data
+        }
+      }
+    });
+
+    // Add totals at the bottom, under the "المبلغ" column
+    const deliveryFee = isAmman ? (3 * data.length) : (4 * data.length);
+    const netAmount = sumTotal - deliveryFee;
+    const totalColIndex = isAmman ? 8 : 9;
+    const labelColIndex = isAmman ? 7 : 8;
+    
+    let currentRow = data.length + 5;
+    
+    const addSummaryRow = (label: string, value: number) => {
+      const row = worksheet.getRow(currentRow);
+      
+      const labelCell = row.getCell(labelColIndex);
+      labelCell.value = label;
+      labelCell.font = { name: 'Segoe UI', size: 12, bold: true };
+      labelCell.alignment = { horizontal: 'left', vertical: 'middle' };
+      
+      const valueCell = row.getCell(totalColIndex);
+      valueCell.value = value;
+      valueCell.font = { name: 'Segoe UI', size: 12, bold: true };
+      valueCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      valueCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+      
+      row.height = 25;
+      currentRow++;
+    };
+
+    addSummaryRow('السعر الاجمالي :', sumTotal);
+    addSummaryRow('سعر التوصيل :', deliveryFee);
+    addSummaryRow('السعر النهائي :', netAmount);
+
+    if (data.length > 25) {
+      currentRow++; // Empty row
+      
+      // At the end of the table - Date on the right, Day on the left
+      worksheet.mergeCells(`B${currentRow}:C${currentRow}`);
+      const bottomDateCell = worksheet.getCell(`B${currentRow}`);
+      bottomDateCell.value = `التاريخ : ${dateStr}`;
+      bottomDateCell.font = { name: 'Segoe UI', size: 14, bold: true };
+      bottomDateCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      const bottomDayCell = worksheet.getCell(`${lastColLetter}${currentRow}`);
+      bottomDayCell.value = `اليوم : ${dayStr}`;
+      bottomDayCell.font = { name: 'Segoe UI', size: 14, bold: true };
+      bottomDayCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    try {
+      if ('showSaveFilePicker' in window) {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: filename,
+          types: [{ description: 'Excel File', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(buffer);
+        await writable.close();
+        return;
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
+      console.error('SaveFilePicker error:', err);
+    }
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const todayStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+  if (ammanOrders.length > 0) {
+    await createWorkbook(ammanOrders, 'تقرير توصيل عمان', `تقرير_توصيل_عمان_${todayStr}.xlsx`);
+  }
+  if (otherOrders.length > 0) {
+    await createWorkbook(otherOrders, 'تقرير توصيل المحافظات', `تقرير_توصيل_المحافظات_${todayStr}.xlsx`);
   }
 };

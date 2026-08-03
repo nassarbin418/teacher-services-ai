@@ -56,6 +56,7 @@ export interface OrderItem {
 
 export interface Order {
   id?: number;
+  daily_order_number?: number;
   created_at?: string;
   customer_name: string;
   school_name: string;

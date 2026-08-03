@@ -1344,7 +1344,10 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                                 onChange={(e) => updateItemSeparateDosiyyah(teacher.id, item.id, e.target.checked)}
                                 style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                               />
-                              <span>فصل كل دوسية لوحدها (يضاف 0.5 دينار لكل دوسية)</span>
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span>لفصل تحضير كل صف لوحده بدوسية يضاف نصف دينار</span>
+                                <small style={{ color: item.separateDosiyyah ? '#047857' : '#64748b', fontWeight: 'normal', marginTop: '0.25rem' }}>*علما بأننا ندمج خطط الصفوف بدوسية وندمج تحضير الصفوف بدوسية.</small>
+                              </div>
                             </label>
                             {item.separateDosiyyah && item.grades.length > 0 && (
                               <div style={{ fontSize: '0.85rem', color: '#065f46', marginTop: '0.5rem', marginRight: '1.75rem', fontWeight: 'bold' }}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import { Search, Download, ChevronDown, ChevronUp, Clock, Package, Bell, BookOpen, Plus, Trash2, CheckCircle2, Calendar } from 'lucide-react';
-import { exportOrderToExcel } from './utils/exportToExcel';
+import { exportOrderToExcel, exportDeliveryReports } from './utils/exportToExcel';
 import './index.css';
 
 function App() {
@@ -15,6 +15,7 @@ function App() {
   const [dateFilter, setDateFilter] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
+  const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
 
   // Subjects State
   const [subjects, setSubjects] = useState<any[]>([]);
@@ -443,8 +444,8 @@ function App() {
 
     const matchesSearch = !term ||
       order.customer_name?.toLowerCase().includes(term) ||
-      order.id.toString().includes(cleanTerm) ||
-      (`#${order.id}`).includes(term) ||
+      (order.daily_order_number || order.id).toString().includes(cleanTerm) ||
+      (`#${order.daily_order_number || order.id}`).includes(term) ||
       order.phone?.includes(term) ||
       order.phone2?.includes(term) ||
       order.notes?.toLowerCase().includes(term) ||
@@ -682,6 +683,36 @@ function App() {
                   <option value="asc">الترتيب: من الأقدم للأحدث ⬆</option>
                 </select>
               </div>
+
+              <div className="filter-select" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: 'auto' }}>
+                <button
+                  onClick={() => {
+                    if (selectedOrders.length === 0) {
+                      showToast('الرجاء تحديد طلبات أولاً', 'error');
+                      return;
+                    }
+                    const ordersToExport = currentOrders.filter(o => selectedOrders.includes(o.id));
+                    exportDeliveryReports(ordersToExport);
+                  }}
+                  disabled={selectedOrders.length === 0}
+                  style={{
+                    background: selectedOrders.length > 0 ? '#10b981' : '#cbd5e1',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.6rem 1rem',
+                    borderRadius: '8px',
+                    cursor: selectedOrders.length > 0 ? 'pointer' : 'not-allowed',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    height: '100%'
+                  }}
+                  title="طباعة التقرير للطلبات المحددة"
+                >
+                  <Download size={18} /> تقرير التوصيل {selectedOrders.length > 0 ? `(${selectedOrders.length})` : ''}
+                </button>
+              </div>
             </div>
 
             {renderToast()}
@@ -744,6 +775,22 @@ function App() {
                 <table className="orders-table">
                   <thead>
                     <tr>
+                      <th style={{ width: '40px' }}>
+                        <input
+                          type="checkbox"
+                          checked={currentOrders.length > 0 && currentOrders.every(o => selectedOrders.includes(o.id))}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              const newSelections = new Set([...selectedOrders, ...currentOrders.map(o => o.id)]);
+                              setSelectedOrders(Array.from(newSelections));
+                            } else {
+                              const currentIds = currentOrders.map(o => o.id);
+                              setSelectedOrders(selectedOrders.filter(id => !currentIds.includes(id)));
+                            }
+                          }}
+                          style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                        />
+                      </th>
                       <th>رقم الطلب</th>
                       <th>تاريخ الطلب</th>
                       <th>اسم العميل</th>
@@ -760,7 +807,21 @@ function App() {
                     {currentOrders.map((order) => (
                       <React.Fragment key={order.id}>
                         <tr className={expandedOrder === order.id ? 'expanded-row' : ''}>
-                          <td style={{ fontWeight: 'bold', color: 'var(--primary)' }}>#{order.id}</td>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedOrders.includes(order.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedOrders(prev => [...prev, order.id]);
+                                } else {
+                                  setSelectedOrders(prev => prev.filter(id => id !== order.id));
+                                }
+                              }}
+                              style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                            />
+                          </td>
+                          <td style={{ fontWeight: 'bold', color: 'var(--primary)' }}>#{order.daily_order_number || order.id}</td>
                           <td dir="ltr" style={{ textAlign: 'right' }}>{new Date(order.created_at).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}</td>
                           <td>{order.customer_name}</td>
                           <td dir="ltr" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -860,7 +921,7 @@ function App() {
                         </tr>
                         {expandedOrder === order.id && (
                           <tr className="details-row">
-                            <td colSpan={10}>
+                            <td colSpan={11}>
                               <div className="order-details-card">
 
                                 {/* معلومات العميل الكاملة - تظهر دائماً */}
@@ -878,7 +939,7 @@ function App() {
                                     </div>
                                     <div><strong>الهاتف 2 (الرقم البديل):</strong> <span dir="ltr">{order.phone2 || 'غير متوفر'}</span></div>
                                     <div><strong>المدرسة:</strong> {order.school_name}</div>
-                                    <div><strong>نوع المدرسة:</strong> {order.school_type || '—'}</div>
+                                    <div><strong>جنس المُتعلم:</strong> {order.school_type || '—'}</div>
                                     <div><strong>نوع التعليم:</strong> {order.directorate || '—'}</div>
                                     <div><strong>المحافظة:</strong> {order.governorate || '—'}</div>
                                     <div><strong>اللواء / المنطقة:</strong> {order.district || '—'}</div>
