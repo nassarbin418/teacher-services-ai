@@ -13,6 +13,71 @@ const STAGE_PACKAGES = [
   { id: 'prep_art', name: 'بكج تحضير فقط مع فن ورياضة', price: 7 },
 ];
 
+const JORDAN_REGIONS: Record<string, string[]> = {
+  "عمان": [
+    "المدينة", "بسمان", "ماركا", "النصر", "اليرموك", "رأس العين", "بدر", "زهران", "العبدلي", "طارق", 
+    "القويسمة", "خريبة السوق", "المقابلين", "البنيات", "أم قصير", "وادي السير", "بدر الجديدة", "صويلح", 
+    "تلاع العلي", "الجبيهة", "شفا بدران", "أبو نصير", "أحد", "مرج الحمام", "سحاب", "الموقر", "الجيزة", 
+    "ناعور", "أم الرصاص", "الجويدة", "أبو علندا", "عبدون", "دير غبار", "الشميساني", "الرابية", 
+    "ضاحية الرشيد", "ضاحية الأمير حسن", "جبل الحسين", "جبل عمان", "جبل اللويبدة", "وسط البلد", 
+    "طبربور", "حي نزال", "حي الزهور", "الاشرفية", "الوحدات", "النزهة", "الهاشمي الشمالي", 
+    "الهاشمي الجنوبي", "ضاحية الياسمين", "ضاحية الحاج حسن", "ضاحية الاقصى", "عرجان", 
+    "المدينة الرياضية", "البيادر", "خلدا", "الجندويل", "دابوق", "أم أذينة", "الصويفية", 
+    "المشتى", "القسطل", "سحاب الصناعية"
+  ],
+  "الزرقاء": [
+    "قصبة الزرقاء", "الرصيفة", "الهاشمية", "الضليل", "الحلابات", "الأزرق", "بيرين", "ياجوز", 
+    "الزرقاء الجديدة", "الغويرية", "جناعة", "حي الجندي", "حي معصوم", "الزواهرة", "حي رمزي", 
+    "حي النزهة", "حي الأمير محمد", "حي الحسين", "الجبل الأبيض", "جبل طارق", "مدينة الشرق", 
+    "عوجان", "جبل الأميرة رحمة", "جبل الأمير حسن", "حي الرشيد", "حي الفلاح", "التطوير الحضري", 
+    "وادي الحجر", "البتراوي", "السخنة", "قصر الحلابات", "أم الصليح", "غريسة", "القنية"
+  ],
+  "إربد": [
+    "قصبة إربد", "بني عبيد", "الحصن", "الصريح", "بني كنانة", "الرمثا", "الطيبة", "الوسطية", 
+    "المزار الشمالي", "الكورة", "الأغوار الشمالية", "الشونة الشمالية", "ايدون", "بشرى", "حوارة", 
+    "سال", "المغير", "كفريوبا", "بيت راس", "حكما", "سوم", "فوعرا", "زحر", "ججين", "كفر جايز", 
+    "مرو", "الشجرة", "الطرة", "عمراوة", "ذنيبة", "المشارع", "كريمة", "دير أبي سعيد", "جديتا", "كفر الماء"
+  ],
+  "البلقاء": [
+    "السلط", "عين الباشا", "الفحيص", "ماحص", "الشونة الجنوبية", "دير علا", "الصبيحي", "العارضة", 
+    "زي", "علان", "عيرا", "يرقا", "مخيم البقعة", "سويمة", "الكرامة", "الروضة", "أم جوزة", "يوشع"
+  ],
+  "المفرق": [
+    "قصبة المفرق", "منشية بني حسن", "رحاب", "بلعما", "البادية الشمالية", "البادية الشمالية الغربية", 
+    "الرويشد", "الخالدية", "الزعتري", "سما السرحان", "حوشا", "السرحان", "ام الجمال", "دير الكهف", 
+    "الصالحية", "نايفة", "صبحا", "الدفيانة", "أم القطين"
+  ],
+  "جرش": [
+    "قصبة جرش", "المعراض", "برما", "المصطبة", "سوف", "ساكب", "كفرخل", "بليلا", "نحلة", "الكتة", 
+    "ريمون", "دير الليات", "مقبلة", "الكفير", "الحدادة", "جبا", "مرصع"
+  ],
+  "عجلون": [
+    "قصبة عجلون", "كفرنجة", "عنجرة", "صخرة", "عبين عبلين", "الوهادنة", "حلاوة", "الهاشمية", 
+    "راجب", "عرجان", "باعون", "محنا", "اشتفينا"
+  ],
+  "مادبا": [
+    "قصبة مادبا", "ذيبان", "ماعين", "الفيصلية", "جرينة", "مليح", "مكاور", "لب", "حسبان", 
+    "العريش", "نتل", "ام العمد"
+  ],
+  "الكرك": [
+    "قصبة الكرك", "المزار الجنوبي", "القطرانه", "الأغوار الجنوبية", "الصافي", "القصر", "مؤاب", 
+    "فقوع", "مؤتة", "الربة", "عي", "الغوير", "ذات راس", "غور المزرعة", "غور الصافي", "الثنية", 
+    "المرج", "منشية أبو حمور", "العدنانية"
+  ],
+  "الطفيلة": [
+    "قصبة الطفيلة", "بصيرا", "الحسا", "العين البيضاء", "القادسية", "غرندل", "العيص", "ابو بنا", 
+    "جرف الدراويش", "عيمة", "الحرير"
+  ],
+  "معان": [
+    "قصبة معان", "البتراء", "وادي موسى", "الشوبك", "الحسينية", "الجفر", "أيل", "الاشعري", 
+    "المريغة", "الطيبة الجنوبية", "قرى النعيمات", "الحي الجنوبي", "الحي الشمالي"
+  ],
+  "العقبة": [
+    "قصبة العقبة", "وادي عربة", "القويرة", "الديسة", "الريشة", "قطر", "رحمة", "المنطقة التاسعة", 
+    "المنطقة العاشرة", "المنطقة السكنية", "الخزان", "الشلالة", "البلدة القديمة", "المحدود", "الوحدات"
+  ]
+};
+
 
 interface CustomerInfo {
   name: string;
@@ -25,9 +90,9 @@ interface CustomerInfo {
   district: string;
   otherDistrict: string;
   deliveryType: 'pickup' | 'delivery';
-  schoolDeliveryGov: string;
+  schoolDeliveryArea: string;
   schoolLocation: string;
-  homeDeliveryGov: string;
+  homeDeliveryArea: string;
   homeLocation: string;
   notes?: string;
 }
@@ -417,7 +482,7 @@ function InquiryScreen({ onBack, showToast, onEditOrder }: any) {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem 1rem', marginBottom: '1.5rem', background: '#f8fafc', borderRadius: '10px', padding: '1rem', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}>
                     <div><strong style={{ color: 'var(--primary)' }}>الاسم:</strong> {order.customer_name}</div>
                     <div><strong style={{ color: 'var(--primary)' }}>المدرسة:</strong> {order.school_name}</div>
-                    <div><strong style={{ color: 'var(--primary)' }}>نوع المدرسة:</strong> {order.school_type}</div>
+                    <div><strong style={{ color: 'var(--primary)' }}>جنس المُتعلم:</strong> {order.school_type}</div>
                     <div><strong style={{ color: 'var(--primary)' }}>نوع التعليم:</strong> {order.directorate}</div>
                     <div><strong style={{ color: 'var(--primary)' }}>المحافظة:</strong> {order.governorate}</div>
                     {order.district && <div><strong style={{ color: 'var(--primary)' }}>اللواء:</strong> {order.district}</div>}
@@ -525,7 +590,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
   const [dbSubjects, setDbSubjects] = useState<any[]>([]);
   const [subjectGradesMap, setSubjectGradesMap] = useState<Record<string | number, string[]>>({});
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
-    name: '', phone: '', phone2: '', schoolName: '', schoolType: '', directorate: '', governorate: '', district: '', otherDistrict: '', deliveryType: 'pickup', schoolDeliveryGov: '', schoolLocation: '', homeDeliveryGov: '', homeLocation: '', notes: ''
+    name: '', phone: '', phone2: '', schoolName: '', schoolType: '', directorate: '', governorate: '', district: '', otherDistrict: '', deliveryType: 'pickup', schoolDeliveryArea: '', schoolLocation: '', homeDeliveryArea: '', homeLocation: '', notes: ''
   });
   const [teachers, setTeachers] = useState<Teacher[]>([{ id: 't1', name: '', items: [] }]);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -600,9 +665,9 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
         district: initialOrder.district || '',
         otherDistrict: '',
         deliveryType: initialOrder.delivery_type === 1 ? 'delivery' : 'pickup',
-        schoolDeliveryGov: initialOrder.governorate || '',
+        schoolDeliveryArea: '',
         schoolLocation: initialOrder.school_location || '',
-        homeDeliveryGov: initialOrder.governorate || '',
+        homeDeliveryArea: '',
         homeLocation: initialOrder.home_location || '',
         notes: initialOrder.notes || ''
       });
@@ -780,8 +845,8 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
           delivery_type: customerInfo.deliveryType === 'pickup' ? 0 : 1,
           delivery_cost: deliveryCost,
           total_amount: totalAmount,
-          school_location: customerInfo.schoolLocation,
-          home_location: customerInfo.homeLocation,
+          school_location: `${customerInfo.schoolDeliveryArea} - ${customerInfo.schoolLocation}`,
+          home_location: `${customerInfo.homeDeliveryArea} - ${customerInfo.homeLocation}`,
           notes: customerInfo.notes || null
         }).eq('id', orderId);
 
@@ -807,8 +872,8 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
           delivery_type: customerInfo.deliveryType === 'pickup' ? 0 : 1,
           delivery_cost: deliveryCost,
           total_amount: totalAmount,
-          school_location: customerInfo.schoolLocation,
-          home_location: customerInfo.homeLocation,
+          school_location: `${customerInfo.schoolDeliveryArea} - ${customerInfo.schoolLocation}`,
+          home_location: `${customerInfo.homeDeliveryArea} - ${customerInfo.homeLocation}`,
           notes: customerInfo.notes || null,
           status: 0
         }).select();
@@ -882,7 +947,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
     }
   };
 
-  const isDeliveryValid = customerInfo.deliveryType === 'pickup' || (customerInfo.deliveryType === 'delivery' && customerInfo.schoolDeliveryGov && customerInfo.schoolLocation && customerInfo.homeDeliveryGov && customerInfo.homeLocation);
+  const isDeliveryValid = customerInfo.deliveryType === 'pickup' || (customerInfo.deliveryType === 'delivery' && customerInfo.schoolDeliveryArea && customerInfo.schoolLocation && customerInfo.homeDeliveryArea && customerInfo.homeLocation);
   const isPrivate = customerInfo.directorate === 'التعليم الخاص' || customerInfo.directorate === 'الثقافة العسكرية';
   const isNameValid = customerInfo.name && customerInfo.name.trim().split(/\s+/).length >= 2;
   const isSchoolNameValid = customerInfo.schoolName && customerInfo.schoolName.trim().split(/\s+/).length >= 3;
@@ -1052,9 +1117,9 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                 <input className="form-input" type="text" name="schoolName" value={customerInfo.schoolName} onChange={handleCustomerChange} maxLength={100} placeholder="الجامعة، ناعور.." />
               </div>
               <div className="form-group">
-                <label className="form-label" style={{ textAlign: 'right' }}>نوع المدرسة <span style={{ color: 'red' }}>*</span></label>
+                <label className="form-label" style={{ textAlign: 'right' }}>جنس المُتعلم <span style={{ color: 'red' }}>*</span></label>
                 <select className="form-select" name="schoolType" value={customerInfo.schoolType} onChange={handleCustomerChange}>
-                  <option value="">اختر نوع المدرسة</option>
+                  <option value="">اختر جنس المُتعلم</option>
                   <option value="ذكور">ذكور</option>
                   <option value="إناث">إناث</option>
                   <option value="مختلط">مختلط</option>
@@ -1091,15 +1156,15 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                   <label>
                     العنوان بالتفصيل (مكان المدرسة) <span style={{ color: 'red' }}>*</span>
                     <div style={{ fontSize: '0.85rem', color: '#dc2626', marginTop: '0.25rem', fontWeight: 'normal' }}>
-                      * يرجى اختيار المحافظة وكتابة تفاصيل الموقع بالكامل (المنطقة، الشارع) لتسهيل وتسريع التوصيل
+                      * يرجى اختيار المنطقة وكتابة تفاصيل الموقع بالكامل (الشارع، المعلم) لتسهيل وتسريع التوصيل
                     </div>
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginTop: '0.5rem' }}>
                     <SearchableSelect
-                      options={Object.keys(locations)}
-                      value={customerInfo.schoolDeliveryGov}
-                      onChange={(val: string) => setCustomerInfo({ ...customerInfo, schoolDeliveryGov: val })}
-                      placeholder="اختر المحافظة"
+                      options={JORDAN_REGIONS[customerInfo.governorate] || []}
+                      value={customerInfo.schoolDeliveryArea}
+                      onChange={(val: string) => setCustomerInfo({ ...customerInfo, schoolDeliveryArea: val })}
+                      placeholder="اختر المنطقة"
                     />
                     <input className="form-input" type="text" name="schoolLocation" value={customerInfo.schoolLocation} onChange={handleCustomerChange} maxLength={200} placeholder="مثال: طبربور، بجانب مسجد التقوى" />
                   </div>
@@ -1108,15 +1173,15 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                   <label>
                     العنوان بالتفصيل (مكان البيت) <span style={{ color: 'red' }}>*</span>
                     <div style={{ fontSize: '0.85rem', color: '#dc2626', marginTop: '0.25rem', fontWeight: 'normal' }}>
-                      * يرجى اختيار المحافظة وكتابة تفاصيل الموقع بالكامل (المنطقة، الشارع) لتسهيل وتسريع التوصيل
+                      * يرجى اختيار المنطقة وكتابة تفاصيل الموقع بالكامل (الشارع، المعلم) لتسهيل وتسريع التوصيل
                     </div>
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginTop: '0.5rem' }}>
                     <SearchableSelect
-                      options={Object.keys(locations)}
-                      value={customerInfo.homeDeliveryGov}
-                      onChange={(val: string) => setCustomerInfo({ ...customerInfo, homeDeliveryGov: val })}
-                      placeholder="اختر المحافظة"
+                      options={JORDAN_REGIONS[customerInfo.governorate] || []}
+                      value={customerInfo.homeDeliveryArea}
+                      onChange={(val: string) => setCustomerInfo({ ...customerInfo, homeDeliveryArea: val })}
+                      placeholder="اختر المنطقة"
                     />
                     <input className="form-input" type="text" name="homeLocation" value={customerInfo.homeLocation} onChange={handleCustomerChange} maxLength={200} placeholder="مثال: حي الزهور، عمارة رقم 5" />
                   </div>
@@ -1135,12 +1200,12 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                   {!customerInfo.phone2 && <li>رقم الهاتف الآخر (البديل إجباري)</li>}
                   {customerInfo.phone2 && customerInfo.phone2.startsWith('07') && customerInfo.phone2.length !== 10 && <li>رقم الهاتف الآخر (يجب أن يكون 10 خانات)</li>}
                   {!isSchoolNameValid && <li>اسم المدرسة (يجب أن يتكون من 3 مقاطع على الأقل)</li>}
-                  {!customerInfo.schoolType && <li>نوع المدرسة</li>}
+                  {!customerInfo.schoolType && <li>جنس المُتعلم</li>}
                   {!customerInfo.directorate && <li>نوع التعليم</li>}
                   {!customerInfo.governorate && <li>المحافظة</li>}
                   {!isPrivate && !customerInfo.district && <li>اللواء / المنطقة</li>}
                   {!isPrivate && customerInfo.district === 'إضافة' && !customerInfo.otherDistrict && <li>اسم اللواء / المنطقة الجديد</li>}
-                  {customerInfo.deliveryType === 'delivery' && (!customerInfo.schoolDeliveryGov || !customerInfo.schoolLocation || !customerInfo.homeDeliveryGov || !customerInfo.homeLocation) && <li>تفاصيل عنوان التوصيل (المحافظة والمنطقة)</li>}
+                  {customerInfo.deliveryType === 'delivery' && (!customerInfo.schoolDeliveryArea || !customerInfo.schoolLocation || !customerInfo.homeDeliveryArea || !customerInfo.homeLocation) && <li>تفاصيل عنوان التوصيل (المنطقة والشارع)</li>}
                 </ul>
               </div>
             )}
@@ -1421,7 +1486,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
               <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>الهاتف:</strong> {customerInfo.phone}</div>
               {customerInfo.phone2 && <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>هاتف بديل:</strong> {customerInfo.phone2}</div>}
               <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>المدرسة:</strong> {customerInfo.schoolName}</div>
-              <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>نوع المدرسة:</strong> {customerInfo.schoolType}</div>
+              <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>جنس المُتعلم:</strong> {customerInfo.schoolType}</div>
               <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>نوع التعليم:</strong> {customerInfo.directorate}</div>
               <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>المحافظة:</strong> {customerInfo.governorate}</div>
               {customerInfo.district && customerInfo.district !== 'إضافة' && (
@@ -1435,10 +1500,10 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                 {customerInfo.deliveryType === 'delivery' ? ' توصيل 🚚' : ' استلام من المكتبة 🏪'}
               </div>
               {customerInfo.deliveryType === 'delivery' && customerInfo.schoolLocation && (
-                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>عنوان المدرسة:</strong> {customerInfo.schoolDeliveryGov} - {customerInfo.schoolLocation}</div>
+                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>عنوان المدرسة:</strong> {customerInfo.schoolDeliveryArea} - {customerInfo.schoolLocation}</div>
               )}
               {customerInfo.deliveryType === 'delivery' && customerInfo.homeLocation && (
-                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>عنوان البيت:</strong> {customerInfo.homeDeliveryGov} - {customerInfo.homeLocation}</div>
+                <div><strong style={{ color: 'var(--primary)', paddingLeft: '0.5rem' }}>عنوان البيت:</strong> {customerInfo.homeDeliveryArea} - {customerInfo.homeLocation}</div>
               )}
               {customerInfo.notes && (
                 <div style={{ gridColumn: '1 / -1', background: '#fffbeb', padding: '0.75rem', borderRadius: '8px', border: '1px solid #fde68a', color: '#92400e', marginTop: '0.5rem' }}>
