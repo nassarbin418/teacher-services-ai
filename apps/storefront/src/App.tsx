@@ -1062,7 +1062,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                 <SearchableSelect 
                   options={Object.keys(locations)} 
                   value={customerInfo.governorate} 
-                  onChange={(val: string) => setCustomerInfo({...customerInfo, governorate: val, district: ''})} 
+                  onChange={(val: string) => setCustomerInfo({...customerInfo, governorate: val, district: '', schoolDeliveryArea: '', homeDeliveryArea: ''})} 
                   placeholder="اختر أو ابحث عن المحافظة..." 
                   nullOption="اختر المحافظة"
                 />
