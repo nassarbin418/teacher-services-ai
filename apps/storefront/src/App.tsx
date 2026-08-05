@@ -852,7 +852,6 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
 
         if (orderError) throw orderError;
 
-        await supabase.from('order_items').delete().eq('order_id', orderId);
 
         await supabase.from('notifications').insert({
           message: `تم تعديل الطلب رقم #${orderId} من قبل ${customerInfo.name} - ${customerInfo.schoolName}`,
@@ -935,8 +934,25 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
       }
 
       if (orderItems.length > 0) {
-        const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-        if (itemsError) throw itemsError;
+        if (initialOrder && initialOrder.id) {
+          const { data: existingItems } = await supabase.from('order_items').select('id').eq('order_id', orderId);
+          if (existingItems) {
+            for (let i = 0; i < Math.min(orderItems.length, existingItems.length); i++) {
+              orderItems[i].id = existingItems[i].id;
+            }
+            if (existingItems.length > orderItems.length) {
+              const idsToDelete = existingItems.slice(orderItems.length).map(item => item.id);
+              await supabase.from('order_items').delete().in('id', idsToDelete);
+            }
+          }
+          const { error: itemsError } = await supabase.from('order_items').upsert(orderItems);
+          if (itemsError) throw itemsError;
+        } else {
+          const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+          if (itemsError) throw itemsError;
+        }
+      } else if (initialOrder && initialOrder.id) {
+        await supabase.from('order_items').delete().eq('order_id', orderId);
       }
 
       setStep(4);
@@ -954,7 +970,11 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
   const isPhoneValid = customerInfo.phone && (!customerInfo.phone.startsWith('07') || customerInfo.phone.length === 10);
   const isPhone2Valid = customerInfo.phone2 && (!customerInfo.phone2.startsWith('07') || customerInfo.phone2.length === 10);
   const isStep1Valid = isNameValid && isSchoolNameValid && isPhoneValid && isPhone2Valid && customerInfo.schoolType && customerInfo.directorate && customerInfo.governorate && (isPrivate || (customerInfo.district && (customerInfo.district !== 'إضافة' || customerInfo.otherDistrict))) && isDeliveryValid;
-  const isStep2Valid = teachers.every(t => 
+  
+  const teacherNames = teachers.map(t => t.name.trim()).filter(n => n);
+  const hasDuplicateTeacherNames = new Set(teacherNames).size !== teacherNames.length;
+
+  const isStep2Valid = !hasDuplicateTeacherNames && teachers.every(t => 
     t.name && 
     t.name.trim().split(/\s+/).length >= 2 && 
     (t.isStageTeacher 
@@ -1463,6 +1483,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
               <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '1.5rem', marginBottom: '1.5rem' }}>
                 <p style={{ color: '#ef4444', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>الرجاء إكمال/تصحيح الأخطاء التالية للمتابعة:</p>
                 <ul style={{ color: '#ef4444', margin: 0, paddingRight: '1.5rem', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  {hasDuplicateTeacherNames && <li>لا يمكن تكرار اسم المعلم في نفس الطلب (الرجاء دمج مواد المعلم في بطاقة واحدة)</li>}
                   {teachers.some(t => !t.name || t.name.trim().split(/\s+/).length < 2) && <li>إدخال أسماء جميع المعلمين (يجب أن يكون كل اسم من مقطعين على الأقل)</li>}
                   {teachers.some(t => !t.isStageTeacher && t.items.length === 0) && <li>إضافة مادة واحدة على الأقل لمعلم المبحث</li>}
                   {teachers.some(t => !t.isStageTeacher && t.items.some(i => i.grades.length === 0)) && <li>اختيار صف واحد على الأقل لكل مادة مضافة</li>}
