@@ -1452,7 +1452,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                               </label>
                               {item.separateDosiyyah && item.grades.length > 0 && (
                                 <div style={{ fontSize: '0.85rem', color: '#065f46', marginTop: '0.5rem', marginRight: '1.75rem', fontWeight: 'bold' }}>
-                                  تم إضافة تكلفة فصل الدوسيات للمجموع (+{item.grades.reduce((acc: number, g: string) => acc + 0.5, 0)} د.أ)
+                                  تم إضافة تكلفة فصل الدوسيات للمجموع (+{item.grades.reduce((acc: number) => acc + 0.5, 0)} د.أ)
                                 </div>
                               )}
                             </div>
