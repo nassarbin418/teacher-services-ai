@@ -27,8 +27,8 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     worksheet.getColumn(3).width = 30; // C (الاسم/الصف/موقع البيت - تكبير)
     worksheet.getColumn(4).width = 34; // D (نوع التعليم/نوع الخدمة - تكبير إضافي لمنع التفاف خطة وتحضير)
     worksheet.getColumn(5).width = 15; // E (جنس المتعلم/السعر)
-    worksheet.getColumn(6).width = 12; // F (Side Labels - reduced)
-    worksheet.getColumn(7).width = 16; // G (Side Values - reduced)
+    worksheet.getColumn(6).width = 15; // F (Side Labels - increased to prevent wrapping)
+    worksheet.getColumn(7).width = 18; // G (Side Values)
 
     // Format createdAt date strings (One with time, one without)
     let formattedCreatedAtDateOnly = '—';
@@ -88,13 +88,15 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // --- Side Summary Section (F2:G7) ---
     const govText = order.governorate === 'عمان' ? 'عمان' : (order.governorate || '—');
-    const sideLabels = ['المحافظة:', 'المنطقة:', 'رقم الطلب:', 'تاريخ الطلب:', 'رقم الهاتف:', 'قيمة الطلب:'];
+    const sideLabels = ['المحافظة:', 'موقع المدرسة:', 'موقع البيت:', 'رقم الطلب:', 'تاريخ الطلب:', 'الهاتف 1:', 'الهاتف 2:', 'قيمة الطلب:'];
     const sideValues = [
       govText,
-      order.district || '—',
+      order.school_location || '—',
+      order.home_location || '—',
       `#${order.daily_order_number || order.id || ''}`,
       formattedCreatedAtDateOnly,
       order.phone ? String(order.phone) : '—',
+      order.phone2 ? String(order.phone2) : '—',
       `${order.total_amount || 0} د.أ`
     ];
 
@@ -103,12 +105,16 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       const lblCell = worksheet.getCell(`F${r}`);
       lblCell.value = label;
       lblCell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF000000' } };
-      lblCell.alignment = { vertical: 'middle', horizontal: 'left' };
+      lblCell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
       
       const valCell = worksheet.getCell(`G${r}`);
       valCell.value = sideValues[i];
       valCell.font = { name: 'Segoe UI', size: 12, bold: false, color: { argb: 'FF0F172A' } };
-      valCell.alignment = { vertical: 'middle', horizontal: 'right' };
+      valCell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+
+      if (i === 2) {
+        worksheet.getRow(r).height = 40; // Increase height for 'موقع البيت' to fit multiple lines
+      }
     });
 
     // Cells C2:E2 (Merged Header for Order Notes - next to date on the left)
@@ -441,8 +447,8 @@ export const exportDeliveryReports = async (orders: any[]) => {
     }
     
     cols.push(
-      { header: 'اسم المنطقة', key: 'area', width: 20 },
-      { header: 'المدرسة', key: 'school', width: 25 },
+      { header: 'عنوان البيت', key: 'homeLocation', width: 30 },
+      { header: 'عنوان المدرسة', key: 'schoolLocation', width: 30 },
       { header: 'اسم المعلم/ة', key: 'customer', width: 25 },
       { header: 'المبلغ', key: 'total', width: 12 },
       { header: 'رقم الهاتف', key: 'phone', width: 15 }
@@ -466,8 +472,8 @@ export const exportDeliveryReports = async (orders: any[]) => {
         seq: index + 1,
         id: `#${order.daily_order_number || order.id || ''}`,
         date: d,
-        area: order.district || '',
-        school: order.school_name || '',
+        homeLocation: order.home_location || '',
+        schoolLocation: order.school_location || '',
         customer: order.customer_name || '',
         total: orderTotal,
         phone: String(order.phone || '')

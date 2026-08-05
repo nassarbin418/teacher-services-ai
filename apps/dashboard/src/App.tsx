@@ -778,14 +778,15 @@ function App() {
                       <th style={{ width: '40px' }}>
                         <input
                           type="checkbox"
-                          checked={currentOrders.length > 0 && currentOrders.every(o => selectedOrders.includes(o.id))}
+                          disabled={currentOrders.filter(o => o.delivery_type === 1).length === 0}
+                          checked={currentOrders.filter(o => o.delivery_type === 1).length > 0 && currentOrders.filter(o => o.delivery_type === 1).every(o => selectedOrders.includes(o.id))}
                           onChange={(e) => {
+                            const deliverableIds = currentOrders.filter(o => o.delivery_type === 1).map(o => o.id);
                             if (e.target.checked) {
-                              const newSelections = new Set([...selectedOrders, ...currentOrders.map(o => o.id)]);
+                              const newSelections = new Set([...selectedOrders, ...deliverableIds]);
                               setSelectedOrders(Array.from(newSelections));
                             } else {
-                              const currentIds = currentOrders.map(o => o.id);
-                              setSelectedOrders(selectedOrders.filter(id => !currentIds.includes(id)));
+                              setSelectedOrders(selectedOrders.filter(id => !deliverableIds.includes(id)));
                             }
                           }}
                           style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
@@ -811,6 +812,7 @@ function App() {
                             <input
                               type="checkbox"
                               checked={selectedOrders.includes(order.id)}
+                              disabled={order.delivery_type !== 1}
                               onChange={(e) => {
                                 if (e.target.checked) {
                                   setSelectedOrders(prev => [...prev, order.id]);
@@ -818,7 +820,7 @@ function App() {
                                   setSelectedOrders(prev => prev.filter(id => id !== order.id));
                                 }
                               }}
-                              style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                              style={{ cursor: order.delivery_type === 1 ? 'pointer' : 'not-allowed', transform: 'scale(1.2)' }}
                             />
                           </td>
                           <td style={{ fontWeight: 'bold', color: 'var(--primary)' }}>#{order.daily_order_number || order.id}</td>
