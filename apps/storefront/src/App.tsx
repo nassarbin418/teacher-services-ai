@@ -803,12 +803,12 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
           item.grades.forEach(g => {
             if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
               total += 7; // Fixed package price
-              if (item.separateDosiyyah) total += 1.5;
+              if (item.separateDosiyyah) total += 0.75;
             } else {
               if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') total += subject.plan_price;
               if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') total += subject.prep_price;
               if (item.separateDosiyyah) {
-                total += (effectiveServiceType === 'both' ? 1.0 : 0.5);
+                total += (effectiveServiceType === 'both' ? 0.5 : 0.25);
               }
             }
           });
@@ -926,12 +926,12 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
               let price = 0;
               if (['الأول', 'الثاني', 'الثالث'].includes(grade)) {
                 price = 7;
-                if (item.separateDosiyyah) price += 1.5;
+                if (item.separateDosiyyah) price += 0.75;
               } else {
                 if (item.serviceType === 'plan' || item.serviceType === 'both') price += subject.plan_price;
                 if (item.serviceType === 'prep' || item.serviceType === 'both') price += subject.prep_price;
                 if (item.separateDosiyyah) {
-                  price += (item.serviceType === 'both' ? 1.0 : 0.5);
+                  price += (item.serviceType === 'both' ? 0.5 : 0.25);
                 }
               }
               orderItems.push({
@@ -1371,12 +1371,12 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                   item.grades.forEach(g => {
                     if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
                       subjectTotal += 7;
-                      if (item.separateDosiyyah) subjectTotal += 1.5;
+                      if (item.separateDosiyyah) subjectTotal += 0.75;
                     } else if (subject) {
                       if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') subjectTotal += planPrice;
                       if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') subjectTotal += prepPrice;
                       if (item.separateDosiyyah) {
-                        subjectTotal += (effectiveServiceType === 'both' ? 1.0 : 0.5);
+                        subjectTotal += (effectiveServiceType === 'both' ? 0.5 : 0.25);
                       }
                     }
                   });
@@ -1580,12 +1580,12 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                       item.grades.forEach(g => {
                         if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
                           subjectTotal += 7;
-                          if (item.separateDosiyyah) subjectTotal += 1.5;
+                          if (item.separateDosiyyah) subjectTotal += 0.75;
                         } else if (subject) {
                           if (item.serviceType === 'plan' || item.serviceType === 'both') subjectTotal += subject.plan_price;
                           if (item.serviceType === 'prep' || item.serviceType === 'both') subjectTotal += subject.prep_price;
                           if (item.separateDosiyyah) {
-                            subjectTotal += (item.serviceType === 'both' ? 1.0 : 0.5);
+                            subjectTotal += (item.serviceType === 'both' ? 0.5 : 0.25);
                           }
                         }
                       });
