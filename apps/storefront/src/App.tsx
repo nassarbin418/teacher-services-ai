@@ -654,23 +654,38 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
 
   useEffect(() => {
     if (initialOrder && dbSubjects.length > 0) {
-      setCustomerInfo({
-        name: initialOrder.customer_name || '',
-        phone: initialOrder.phone || '',
-        phone2: initialOrder.phone2 || '',
-        schoolName: initialOrder.school_name || '',
-        schoolType: initialOrder.school_type || '',
-        directorate: initialOrder.directorate || '',
-        governorate: initialOrder.governorate || '',
-        district: initialOrder.district || '',
-        otherDistrict: '',
-        deliveryType: initialOrder.delivery_type === 1 ? 'delivery' : 'pickup',
-        schoolDeliveryArea: '',
-        schoolLocation: initialOrder.school_location || '',
-        homeDeliveryArea: '',
-        homeLocation: initialOrder.home_location || '',
-        notes: initialOrder.notes || ''
-      });
+        let sArea = '';
+        let sLoc = initialOrder.school_location || '';
+        if (sLoc.includes(' - ')) {
+          const parts = sLoc.split(' - ');
+          sArea = parts[0];
+          sLoc = parts.slice(1).join(' - ');
+        }
+        let hArea = '';
+        let hLoc = initialOrder.home_location || '';
+        if (hLoc.includes(' - ')) {
+          const parts = hLoc.split(' - ');
+          hArea = parts[0];
+          hLoc = parts.slice(1).join(' - ');
+        }
+
+        setCustomerInfo({
+          name: initialOrder.customer_name || '',
+          phone: initialOrder.phone || '',
+          phone2: initialOrder.phone2 || '',
+          schoolName: initialOrder.school_name || '',
+          schoolType: initialOrder.school_type || '',
+          directorate: initialOrder.directorate || '',
+          governorate: initialOrder.governorate || '',
+          district: initialOrder.district || '',
+          otherDistrict: '',
+          deliveryType: initialOrder.delivery_type === 1 ? 'delivery' : 'pickup',
+          schoolDeliveryArea: sArea,
+          schoolLocation: sLoc,
+          homeDeliveryArea: hArea,
+          homeLocation: hLoc,
+          notes: initialOrder.notes || ''
+        });
 
       if (initialOrder.order_items && Array.isArray(initialOrder.order_items)) {
         const teacherMap: Record<string, Teacher> = {};
