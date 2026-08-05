@@ -5,9 +5,22 @@ import { exportOrderToExcel, exportDeliveryReports } from './utils/exportToExcel
 import './index.css';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'orders' | 'subjects'>('orders');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
 
-  // Orders State
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username === 'admin' && password === 'ibrahim@nassar') {
+      setIsAuthenticated(true);
+      setLoginError('');
+    } else {
+      setLoginError('اسم المستخدم أو كلمة المرور غير صحيحة');
+    }
+  };
+
+  const [activeTab, setActiveTab] = useState<'orders' | 'subjects'>('orders');
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -500,6 +513,74 @@ function App() {
       </div>
     );
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f1f5f9', padding: '1rem', direction: 'rtl' }}>
+        <div style={{ background: 'white', padding: '2.5rem', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', width: '100%', maxWidth: '450px', border: '1px solid #e2e8f0' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+             <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="لوحة التحكم" style={{ height: '90px', width: 'auto', objectFit: 'contain', marginBottom: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+             <h2 style={{ color: '#0f172a', margin: 0, fontSize: '1.75rem', fontWeight: 'bold' }}>مرحباً بعودتك!</h2>
+             <p style={{ color: '#64748b', marginTop: '0.5rem', fontSize: '1rem' }}>سجل الدخول للمتابعة إلى لوحة التحكم</p>
+          </div>
+          {loginError && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
+              <span style={{ fontSize: '1.25rem' }}>⚠️</span> {loginError}
+            </div>
+          )}
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#334155', fontWeight: '600', fontSize: '0.95rem' }}>اسم المستخدم</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                style={{ width: '100%', padding: '0.875rem 1rem', borderRadius: '12px', border: '2px solid #e2e8f0', outline: 'none', fontSize: '1rem', transition: 'border-color 0.2s', background: '#f8fafc' }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--primary, #3b82f6)'}
+                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                required
+                placeholder="أدخل اسم المستخدم"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#334155', fontWeight: '600', fontSize: '0.95rem' }}>كلمة المرور</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ width: '100%', padding: '0.875rem 1rem', borderRadius: '12px', border: '2px solid #e2e8f0', outline: 'none', fontSize: '1rem', transition: 'border-color 0.2s', background: '#f8fafc' }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--primary, #3b82f6)'}
+                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                required
+                placeholder="أدخل كلمة المرور"
+              />
+            </div>
+            <button 
+              type="submit" 
+              style={{ 
+                background: 'var(--primary, #3b82f6)', 
+                color: 'white', 
+                border: 'none', 
+                padding: '1rem', 
+                borderRadius: '12px', 
+                fontWeight: 'bold', 
+                cursor: 'pointer', 
+                marginTop: '1rem', 
+                fontSize: '1.1rem',
+                boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.2)',
+                transition: 'transform 0.1s, box-shadow 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'translateY(1px)'}
+            >
+              تسجيل الدخول
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container" dir="rtl">
