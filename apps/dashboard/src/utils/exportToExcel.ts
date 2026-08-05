@@ -75,6 +75,22 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       }
     };
 
+    // Calculate display values for delivery and total
+    const isDelivery = String(order.delivery_type) === '1' || Number(order.delivery_cost) > 0;
+    const isAmman = order.governorate === 'عمان' || order.governorate === 'محافظة عمان';
+    let displayDeliveryCost = Number(order.delivery_cost) || (isDelivery ? 3 : 0);
+    let displayTotalAmount = Number(order.total_amount) || 0;
+    
+    if (isDelivery && !isAmman && order.governorate) {
+      if (displayDeliveryCost === 3) {
+        displayDeliveryCost = 4;
+        displayTotalAmount += 1;
+      } else if (!order.delivery_cost) {
+        displayDeliveryCost = 4;
+        displayTotalAmount += 4;
+      }
+    }
+
     // --- 1. Fill Order Info (معلومات الطلب) ---
     // Cell A3: Order ID
     const cellA3 = worksheet.getCell('A3');
@@ -97,7 +113,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       formattedCreatedAtDateOnly,
       order.phone ? String(order.phone) : '—',
       order.phone2 ? String(order.phone2) : '—',
-      `${order.total_amount || 0} د.أ`
+      `${displayTotalAmount} د.أ`
     ];
 
     sideLabels.forEach((label, i) => {
@@ -207,12 +223,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     }
 
     // --- 4. Delivery Cost & Total Amount Rows (Dynamic placement) ---
-    const isDelivery = String(order.delivery_type) === '1' || Number(order.delivery_cost) > 0;
-    const isAmman = order.governorate === 'عمان' || order.governorate === 'محافظة عمان';
-    const defaultDeliveryCost = order.governorate ? (isAmman ? 3 : 4) : 3;
-    const deliveryCostVal = Number(order.delivery_cost) || (isDelivery ? defaultDeliveryCost : 0);
-
-    if (isDelivery || deliveryCostVal > 0) {
+    if (isDelivery || displayDeliveryCost > 0) {
       // Write Delivery Cost at currentRowIndex
       const deliveryCellLabel = worksheet.getCell(`D${currentRowIndex}`);
       deliveryCellLabel.style = {};
@@ -224,7 +235,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
       const deliveryCellVal = worksheet.getCell(`E${currentRowIndex}`);
       deliveryCellVal.style = {};
-      deliveryCellVal.value = `${deliveryCostVal} د.أ`;
+      deliveryCellVal.value = `${displayDeliveryCost} د.أ`;
       deliveryCellVal.font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FF1F2937' } };
       deliveryCellVal.alignment = { horizontal: 'center', vertical: 'middle' };
       deliveryCellVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
@@ -244,7 +255,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     const totalCellVal = worksheet.getCell(`E${currentRowIndex}`);
     totalCellVal.style = {};
-    totalCellVal.value = `${order.total_amount || 0} د.أ`;
+    totalCellVal.value = `${displayTotalAmount} د.أ`;
     totalCellVal.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF059669' } };
     totalCellVal.alignment = { horizontal: 'center', vertical: 'middle' };
     totalCellVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
@@ -466,7 +477,16 @@ export const exportDeliveryReports = async (orders: any[]) => {
         d = `${dateObj.toLocaleDateString('ar-EG')}`;
       }
       
-      const orderTotal = Number(order.total_amount) || 0;
+      let orderTotal = Number(order.total_amount) || 0;
+      if (!isAmman) {
+        const isDelivery = String(order.delivery_type) === '1' || Number(order.delivery_cost) > 0;
+        const originalDelivery = Number(order.delivery_cost) || (isDelivery ? 3 : 0);
+        if (isDelivery && originalDelivery === 3) {
+          orderTotal += 1;
+        } else if (isDelivery && !order.delivery_cost) {
+          orderTotal += 4;
+        }
+      }
       sumTotal += orderTotal;
       
       const rowData: any = {
