@@ -208,7 +208,8 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // --- 4. Delivery Cost & Total Amount Rows (Dynamic placement) ---
     const isDelivery = String(order.delivery_type) === '1' || Number(order.delivery_cost) > 0;
-    const deliveryCostVal = Number(order.delivery_cost) || (isDelivery ? 3 : 0);
+    const defaultDeliveryCost = (order.governorate && order.governorate !== 'عمان' && order.governorate !== 'محافظة عمان') ? 4 : 3;
+    const deliveryCostVal = Number(order.delivery_cost) || (isDelivery ? defaultDeliveryCost : 0);
 
     if (isDelivery || deliveryCostVal > 0) {
       // Write Delivery Cost at currentRowIndex

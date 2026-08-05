@@ -800,7 +800,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
         });
       }
     });
-    const deliveryCost = customerInfo.deliveryType === 'delivery' ? 3 : 0;
+    const deliveryCost = customerInfo.deliveryType === 'delivery' ? (customerInfo.governorate && customerInfo.governorate !== 'عمان' && customerInfo.governorate !== 'محافظة عمان' ? 4 : 3) : 0;
     return total + deliveryCost;
   };
 
@@ -809,7 +809,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
     try {
       const finalDistrict = customerInfo.district === 'إضافة' ? customerInfo.otherDistrict : customerInfo.district;
       const totalAmount = calculateTotal();
-      const deliveryCost = customerInfo.deliveryType === 'delivery' ? 3 : 0;
+      const deliveryCost = customerInfo.deliveryType === 'delivery' ? (customerInfo.governorate && customerInfo.governorate !== 'عمان' && customerInfo.governorate !== 'محافظة عمان' ? 4 : 3) : 0;
 
       // Append new district to DB if manual entry
       if (customerInfo.district === 'إضافة' && customerInfo.otherDistrict) {
