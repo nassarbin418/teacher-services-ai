@@ -803,12 +803,12 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
           item.grades.forEach(g => {
             if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
               total += 7; // Fixed package price
-              if (item.separateDosiyyah) total += 0.75;
+              if (item.separateDosiyyah) total += 0.5;
             } else {
               if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') total += subject.plan_price;
               if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') total += subject.prep_price;
-              if (item.separateDosiyyah) {
-                total += (effectiveServiceType === 'both' ? 0.5 : 0.25);
+              if (item.separateDosiyyah && effectiveServiceType !== 'plan') {
+                total += 0.5;
               }
             }
           });
@@ -926,12 +926,12 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
               let price = 0;
               if (['الأول', 'الثاني', 'الثالث'].includes(grade)) {
                 price = 7;
-                if (item.separateDosiyyah) price += 0.75;
+                if (item.separateDosiyyah) price += 0.5;
               } else {
                 if (item.serviceType === 'plan' || item.serviceType === 'both') price += subject.plan_price;
                 if (item.serviceType === 'prep' || item.serviceType === 'both') price += subject.prep_price;
-                if (item.separateDosiyyah) {
-                  price += (item.serviceType === 'both' ? 0.5 : 0.25);
+                if (item.separateDosiyyah && item.serviceType !== 'plan') {
+                  price += 0.5;
                 }
               }
               orderItems.push({
@@ -1371,12 +1371,12 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                   item.grades.forEach(g => {
                     if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
                       subjectTotal += 7;
-                      if (item.separateDosiyyah) subjectTotal += 0.75;
+                      if (item.separateDosiyyah) subjectTotal += 0.5;
                     } else if (subject) {
                       if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') subjectTotal += planPrice;
                       if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') subjectTotal += prepPrice;
-                      if (item.separateDosiyyah) {
-                        subjectTotal += (effectiveServiceType === 'both' ? 0.5 : 0.25);
+                      if (item.separateDosiyyah && effectiveServiceType !== 'plan') {
+                        subjectTotal += 0.5;
                       }
                     }
                   });
@@ -1436,28 +1436,27 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                             </div>
                           )}
 
-                          <div style={{ marginTop: '1.5rem', background: item.separateDosiyyah ? '#ecfdf5' : '#f8fafc', padding: '1rem', borderRadius: '8px', border: item.separateDosiyyah ? '1px solid #10b981' : '1px solid var(--border)', transition: 'all 0.2s' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontWeight: 'bold', color: item.separateDosiyyah ? '#047857' : 'var(--text)' }}>
-                              <input
-                                type="checkbox"
-                                checked={!!item.separateDosiyyah}
-                                onChange={(e) => updateItemSeparateDosiyyah(teacher.id, item.id, e.target.checked)}
-                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                              />
-                              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span>لفصل تحضير كل صف لوحده بدوسية يضاف نصف دينار</span>
-                                <small style={{ color: item.separateDosiyyah ? '#047857' : '#64748b', fontWeight: 'normal', marginTop: '0.25rem' }}>*علما بأننا ندمج خطط الصفوف بدوسية وندمج تحضير الصفوف بدوسية.</small>
-                              </div>
-                            </label>
-                            {item.separateDosiyyah && item.grades.length > 0 && (
-                              <div style={{ fontSize: '0.85rem', color: '#065f46', marginTop: '0.5rem', marginRight: '1.75rem', fontWeight: 'bold' }}>
-                                تم إضافة تكلفة فصل الدوسيات للمجموع (+{item.grades.reduce((acc: number, g: string) => {
-                                  if (['الأول', 'الثاني', 'الثالث'].includes(g)) return acc + 1.5;
-                                  return acc + (effectiveServiceType === 'both' ? 1.0 : 0.5);
-                                }, 0)} د.أ)
-                              </div>
-                            )}
-                          </div>
+                          {effectiveServiceType !== 'plan' && (
+                            <div style={{ marginTop: '1.5rem', background: item.separateDosiyyah ? '#ecfdf5' : '#f8fafc', padding: '1rem', borderRadius: '8px', border: item.separateDosiyyah ? '1px solid #10b981' : '1px solid var(--border)', transition: 'all 0.2s' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontWeight: 'bold', color: item.separateDosiyyah ? '#047857' : 'var(--text)' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={!!item.separateDosiyyah}
+                                  onChange={(e) => updateItemSeparateDosiyyah(teacher.id, item.id, e.target.checked)}
+                                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                />
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                  <span>لفصل تحضير كل صف لوحده بدوسية يضاف نصف دينار</span>
+                                  <small style={{ color: item.separateDosiyyah ? '#047857' : '#64748b', fontWeight: 'normal', marginTop: '0.25rem' }}>*علما بأننا ندمج خطط الصفوف بدوسية وندمج تحضير الصفوف بدوسية.</small>
+                                </div>
+                              </label>
+                              {item.separateDosiyyah && item.grades.length > 0 && (
+                                <div style={{ fontSize: '0.85rem', color: '#065f46', marginTop: '0.5rem', marginRight: '1.75rem', fontWeight: 'bold' }}>
+                                  تم إضافة تكلفة فصل الدوسيات للمجموع (+{item.grades.reduce((acc: number, g: string) => acc + 0.5, 0)} د.أ)
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', border: '1px solid var(--border)' }}>
                             المجموع لهذه المادة: {subjectTotal} د.أ
@@ -1580,12 +1579,12 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                       item.grades.forEach(g => {
                         if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
                           subjectTotal += 7;
-                          if (item.separateDosiyyah) subjectTotal += 0.75;
+                          if (item.separateDosiyyah) subjectTotal += 0.5;
                         } else if (subject) {
                           if (item.serviceType === 'plan' || item.serviceType === 'both') subjectTotal += subject.plan_price;
                           if (item.serviceType === 'prep' || item.serviceType === 'both') subjectTotal += subject.prep_price;
-                          if (item.separateDosiyyah) {
-                            subjectTotal += (item.serviceType === 'both' ? 0.5 : 0.25);
+                          if (item.separateDosiyyah && item.serviceType !== 'plan') {
+                            subjectTotal += 0.5;
                           }
                         }
                       });
@@ -1595,7 +1594,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{subject?.name} - {item.grades.join('، ')}</span>
                             <span style={{ background: '#e2e8f0', color: '#475569', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem' }}>{serviceLabel}</span>
-                            {item.separateDosiyyah && (
+                            {item.separateDosiyyah && item.serviceType !== 'plan' && (
                               <span style={{ background: '#fef3c7', color: '#b45309', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold', border: '1px solid #fde68a' }}>
                                 فصل الدوسيات (+0.5 د.أ/دوسية)
                               </span>
