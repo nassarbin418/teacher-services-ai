@@ -705,8 +705,12 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
             const subObj = dbSubjects.find(s => s.name === item.subject);
             const subId = subObj ? subObj.id : item.subject;
             const sType = item.service_type === 0 ? 'plan' : item.service_type === 1 ? 'prep' : 'both';
+            let sepDosiyyah = item.separate_dosiyyah || false;
+            if (String(item.subject).includes('(فصل الدوسيات)')) {
+              sepDosiyyah = true;
+            }
             
-            const existingItem = teacherMap[tName].items.find(i => String(i.subjectId) === String(subId) && i.serviceType === sType);
+            const existingItem = teacherMap[tName].items.find(i => String(i.subjectId) === String(subId) && i.serviceType === sType && !!i.separateDosiyyah === sepDosiyyah);
             if (existingItem) {
               if (!existingItem.grades.includes(item.grade)) {
                 existingItem.grades.push(item.grade);
@@ -716,7 +720,8 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                 id: 'item_' + Math.random().toString(36).substr(2, 9),
                 subjectId: subId,
                 grades: [item.grade],
-                serviceType: sType
+                serviceType: sType,
+                separateDosiyyah: sepDosiyyah
               });
             }
           }
