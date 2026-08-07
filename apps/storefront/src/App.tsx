@@ -753,7 +753,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
   const updateTeacherStageGrade = (id: string, grade: string) => setTeachers(teachers.map(t => t.id === id ? { ...t, stageGrade: grade } : t));
   const updateTeacherStagePackage = (id: string, pkg: string) => setTeachers(teachers.map(t => t.id === id ? { ...t, stagePackage: pkg } : t));
 
-  const toggleSubjectForTeacher = (teacherId: string, subjectName: string) => {
+  const addSubjectForTeacher = (teacherId: string, subjectName: string) => {
     const subject = dbSubjects.find((s: any) => s.name === subjectName);
     if (!subject) return;
 
@@ -763,11 +763,16 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
 
     setTeachers(prevTeachers => prevTeachers.map(t => {
       if (t.id !== teacherId) return t;
-      const existing = t.items.find(i => i.subjectId === subject.id);
-      if (existing) return { ...t, items: t.items.filter(i => i.subjectId !== subject.id) };
       const newItemId = Math.random().toString();
       setExpandedItems(prev => [...prev, newItemId]);
       return { ...t, items: [...t.items, { id: newItemId, subjectId: subject.id, grades: [], serviceType: defaultServiceType, separateDosiyyah: false }] };
+    }));
+  };
+
+  const removeItemFromTeacher = (teacherId: string, itemId: string) => {
+    setTeachers(prevTeachers => prevTeachers.map(t => {
+      if (t.id !== teacherId) return t;
+      return { ...t, items: t.items.filter(i => i.id !== itemId) };
     }));
   };
 
@@ -1350,7 +1355,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                       <SearchableSelect
                         options={dbSubjects.map(s => s.name)}
                         value=""
-                        onChange={(val: string) => toggleSubjectForTeacher(teacher.id, val)}
+                        onChange={(val: string) => addSubjectForTeacher(teacher.id, val)}
                         placeholder="ابحث عن مادة لإضافتها..."
                       />
                     </div>
@@ -1381,6 +1386,13 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                     }
                   });
 
+                  const usedGrades = teacher.items
+                    .filter((otherItem: any) => otherItem.id !== item.id && otherItem.subjectId === item.subjectId)
+                    .flatMap((otherItem: any) => otherItem.grades);
+
+                  const baseOptions = (subject && subjectGradesMap[String(subject.id)] && subjectGradesMap[String(subject.id)].length > 0) ? subjectGradesMap[String(subject.id)] : GRADES;
+                  const availableOptions = baseOptions.filter((g: string) => !usedGrades.includes(g));
+
                   const hasError = item.grades.length === 0;
 
                   return (
@@ -1390,7 +1402,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                           {subject?.name}
                         </div>
-                        <button className="icon-btn" onClick={(e) => { e.stopPropagation(); toggleSubjectForTeacher(teacher.id, subject?.name || ''); }} style={{ color: '#ef4444' }}>
+                        <button className="icon-btn" onClick={(e) => { e.stopPropagation(); removeItemFromTeacher(teacher.id, item.id); }} style={{ color: '#ef4444' }}>
                           <Trash2 size={18} />
                         </button>
                       </div>
@@ -1399,7 +1411,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                         <div style={{ padding: '1.5rem', borderTop: hasError ? '1px solid #ef4444' : '1px solid var(--border)' }}>
                           <div className="form-group">
                             <label style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.5rem', display: 'block' }}>الصفوف المطلوبة: <span style={{ color: 'red' }}>*</span></label>
-                            <MultiSelect options={(subject && subjectGradesMap[String(subject.id)] && subjectGradesMap[String(subject.id)].length > 0) ? subjectGradesMap[String(subject.id)] : GRADES} selected={item.grades} onChange={(val: any) => updateItemGrades(teacher.id, item.id, val)} placeholder="اختر الصفوف..." hasError={hasError} />
+                            <MultiSelect options={availableOptions} selected={item.grades} onChange={(val: any) => updateItemGrades(teacher.id, item.id, val)} placeholder="اختر الصفوف..." hasError={hasError} />
                             {hasError && <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 'bold', textAlign: 'right' }}>يرجى اختيار صف واحد على الأقل للمادة</div>}
                           </div>
 

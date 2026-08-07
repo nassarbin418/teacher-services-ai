@@ -263,8 +263,12 @@ function App() {
         'مرفوض من المكتبة',
         'تم الغاء الطلب'
       ];
+      
+      const orderToUpdate = orders.find(o => o.id === orderId);
+      const displayId = orderToUpdate?.daily_order_number || orderId;
+      
       await supabase.from('notifications').insert({
-        message: `تم تغيير حالة الطلب #${orderId} إلى ${statuses[newStatus] || 'مجهول'}`,
+        message: `تم تغيير حالة الطلب #${displayId} إلى ${statuses[newStatus] || 'مجهول'}`,
         type: 'update',
         order_id: orderId
       });

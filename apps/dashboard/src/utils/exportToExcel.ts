@@ -160,12 +160,48 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // --- 3. Fill Teachers & Items (تفاصيل المعلمين والمواد) ---
     const itemsRaw = itemsParam || order.order_items || order.items || [];
+    
+    // Aggregate items that have the same teacher, subject, and service type
+    const aggregatedItemsMap = new Map<string, any>();
+    
+    itemsRaw.forEach((item: any) => {
+      const teacherName = item.teacher_name || '';
+      const subVal = String(item.subject || '');
+      const displaySubject = (item.separate_dosiyyah && !subVal.includes('فصل الدوسيات')) ? `${subVal} (فصل الدوسيات)` : subVal;
+      const sType = serviceTypeName(item.service_type, item.subject);
+      
+      const key = `${teacherName}___${displaySubject}___${sType}`;
+      
+      if (aggregatedItemsMap.has(key)) {
+        const existing = aggregatedItemsMap.get(key);
+        if (item.grade && !existing.grades.includes(item.grade)) {
+           existing.grades.push(item.grade);
+        }
+        existing.price += Number(item.price) || 0;
+      } else {
+        aggregatedItemsMap.set(key, {
+          ...item,
+          teacher_name: teacherName,
+          displaySubject,
+          sType,
+          grades: item.grade ? [item.grade] : [],
+          price: Number(item.price) || 0
+        });
+      }
+    });
+
+    const aggregatedItemsList = Array.from(aggregatedItemsMap.values()).map(item => ({
+      ...item,
+      grade: item.grades.join('، ')
+    }));
+
     // Sort items alphabetically by subject name
-    const items = [...itemsRaw].sort((a: any, b: any) => {
-      const subA = a.subject || '';
-      const subB = b.subject || '';
+    const items = aggregatedItemsList.sort((a: any, b: any) => {
+      const subA = a.displaySubject || '';
+      const subB = b.displaySubject || '';
       return subA.localeCompare(subB, 'ar');
     });
+
     // Style helper for data cells using Segoe UI font matching Windows Excel template
     const setDataStyle = (cell: any) => {
       cell.style = {};
@@ -196,11 +232,9 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
         worksheet.getRow(r).height = 35; // Increased for better readability on multiple lines
 
         const cellA = worksheet.getCell(`A${r}`); cellA.style = {}; cellA.value = item.teacher_name || ''; setDataStyle(cellA);
-        const subVal = String(item.subject || '');
-        const displaySubject = (item.separate_dosiyyah && !subVal.includes('فصل الدوسيات')) ? `${subVal} (فصل الدوسيات)` : subVal;
-        const cellB = worksheet.getCell(`B${r}`); cellB.style = {}; cellB.value = displaySubject; setDataStyle(cellB);
+        const cellB = worksheet.getCell(`B${r}`); cellB.style = {}; cellB.value = item.displaySubject; setDataStyle(cellB);
         const cellC = worksheet.getCell(`C${r}`); cellC.style = {}; cellC.value = item.grade || ''; setDataStyle(cellC);
-        const cellD = worksheet.getCell(`D${r}`); cellD.style = {}; cellD.value = serviceTypeName(item.service_type, item.subject); setDataStyle(cellD);
+        const cellD = worksheet.getCell(`D${r}`); cellD.style = {}; cellD.value = item.sType; setDataStyle(cellD);
         const cellE = worksheet.getCell(`E${r}`); cellE.style = {}; cellE.value = `${item.price || 0} د.أ`; setDataStyle(cellE);
       });
       currentRowIndex = 11 + items.length;
