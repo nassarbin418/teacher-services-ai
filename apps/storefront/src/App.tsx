@@ -976,8 +976,18 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
               await supabase.from('order_items').delete().in('id', idsToDelete);
             }
           }
-          const { error: itemsError } = await supabase.from('order_items').upsert(orderItems);
-          if (itemsError) throw itemsError;
+          
+          const itemsToUpdate = orderItems.filter(item => item.id);
+          const itemsToInsert = orderItems.filter(item => !item.id);
+          
+          if (itemsToUpdate.length > 0) {
+            const { error: updateError } = await supabase.from('order_items').upsert(itemsToUpdate);
+            if (updateError) throw updateError;
+          }
+          if (itemsToInsert.length > 0) {
+            const { error: insertError } = await supabase.from('order_items').insert(itemsToInsert);
+            if (insertError) throw insertError;
+          }
         } else {
           const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
           if (itemsError) throw itemsError;
