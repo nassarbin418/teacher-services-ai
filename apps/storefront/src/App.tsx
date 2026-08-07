@@ -810,8 +810,8 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
               total += 7; // Fixed package price
               if (item.separateDosiyyah) total += 0.5;
             } else {
-              if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') total += subject.plan_price;
-              if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') total += subject.prep_price;
+              if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') total += Number(subject.plan_price || 0);
+              if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') total += Number(subject.prep_price || 0);
               if (item.separateDosiyyah && effectiveServiceType !== 'plan') {
                 total += 0.5;
               }
@@ -873,8 +873,9 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
         if (orderError) throw orderError;
 
 
+        const displayId = initialOrder.daily_order_number || initialOrder.id || orderId;
         await supabase.from('notifications').insert({
-          message: `تم تعديل الطلب رقم #${orderId} من قبل ${customerInfo.name} - ${customerInfo.schoolName}`,
+          message: `تم تعديل الطلب رقم #${displayId} من قبل ${customerInfo.name} - ${customerInfo.schoolName}`,
           type: 'order_modified',
           order_id: orderId
         });
@@ -900,8 +901,9 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
         if (orderError) throw orderError;
         orderId = orderData[0].id;
 
+        const displayId = orderData[0].daily_order_number || orderData[0].id || orderId;
         await supabase.from('notifications').insert({
-          message: `طلب جديد برقم #${orderId} من ${customerInfo.name} - ${customerInfo.schoolName}`,
+          message: `طلب جديد برقم #${displayId} من ${customerInfo.name} - ${customerInfo.schoolName}`,
           type: 'new',
           order_id: orderId
         });
@@ -929,13 +931,17 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
             if (!subject) continue;
             for (const grade of item.grades) {
               let price = 0;
+              const effectiveServiceType = (subject.plan_price > 0 && subject.prep_price > 0)
+                ? item.serviceType
+                : (subject.plan_price > 0 ? 'plan' : 'prep');
+
               if (['الأول', 'الثاني', 'الثالث'].includes(grade)) {
                 price = 7;
                 if (item.separateDosiyyah) price += 0.5;
               } else {
-                if (item.serviceType === 'plan' || item.serviceType === 'both') price += subject.plan_price;
-                if (item.serviceType === 'prep' || item.serviceType === 'both') price += subject.prep_price;
-                if (item.separateDosiyyah && item.serviceType !== 'plan') {
+                if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') price += Number(subject.plan_price || 0);
+                if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') price += Number(subject.prep_price || 0);
+                if (item.separateDosiyyah && effectiveServiceType !== 'plan') {
                   price += 0.5;
                 }
               }

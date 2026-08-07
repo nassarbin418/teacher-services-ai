@@ -214,6 +214,14 @@ function App() {
       })
       .subscribe();
 
+    // Subscribe to real-time changes for Order Items
+    const orderItemsChannel = supabase
+      .channel('order_items_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        fetchOrders(); // Refresh orders when items are added/modified
+      })
+      .subscribe();
+
     // Subscribe to real-time changes for Notifications
     const notifChannel = supabase
       .channel('notif_channel')
@@ -232,6 +240,7 @@ function App() {
 
     return () => {
       supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(orderItemsChannel);
       supabase.removeChannel(notifChannel);
     };
   }, []);
