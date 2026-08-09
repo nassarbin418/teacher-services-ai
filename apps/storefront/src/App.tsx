@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, User, Truck, CheckCircle, Plus, Trash2, Loader2, SearchIcon, Package, ChevronUp, ChevronDown, ArrowLeft, Store } from 'lucide-react';
+import { BookOpen, User, Truck, CheckCircle, Plus, Trash2, Loader2, SearchIcon, ChevronUp, ChevronDown, ArrowLeft, Store } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 const GRADES = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر', 'الحادي عشر (أكاديمي)', 'الثاني عشر (أكاديمي)'];
@@ -810,7 +810,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
             ? item.serviceType
             : (subject.plan_price > 0 ? 'plan' : 'prep');
 
-          item.grades.forEach(g => {
+          item.grades.forEach(() => {
             if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') total += Number(subject.plan_price || 0);
             if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') total += Number(subject.prep_price || 0);
             if (item.separateDosiyyah && effectiveServiceType !== 'plan') {
@@ -1384,7 +1384,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
 
                   let subjectTotal = 0;
                   if (subject) {
-                    item.grades.forEach(g => {
+                    item.grades.forEach(() => {
                       if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') subjectTotal += planPrice;
                       if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') subjectTotal += prepPrice;
                       if (item.separateDosiyyah && effectiveServiceType !== 'plan') {
