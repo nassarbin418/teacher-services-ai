@@ -1443,7 +1443,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                                 {planPrice > 0 && prepPrice > 0 && (
                                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                     <input type="radio" name={`service_${item.id}`} checked={effectiveServiceType === 'both'} onChange={() => updateItemServiceType(teacher.id, item.id, 'both')} /> 
-                                    خطة + تحضير ({planPrice + prepPrice} د.أ)
+                                    خطة وتحليل + تحضير ({planPrice + prepPrice} د.أ)
                                   </label>
                                 )}
                                 {planPrice > 0 && (
