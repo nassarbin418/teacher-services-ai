@@ -1588,11 +1588,8 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                       else if (item.serviceType === 'prep') serviceLabel = 'تحضير';
                       else serviceLabel = 'خطة وتحضير';
 
-                      item.grades.forEach(g => {
-                        if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
-                          subjectTotal += 7;
-                          if (item.separateDosiyyah) subjectTotal += 0.5;
-                        } else if (subject) {
+                      item.grades.forEach(() => {
+                        if (subject) {
                           if (item.serviceType === 'plan' || item.serviceType === 'both') subjectTotal += subject.plan_price;
                           if (item.serviceType === 'prep' || item.serviceType === 'both') subjectTotal += subject.prep_price;
                           if (item.separateDosiyyah && item.serviceType !== 'plan') {
