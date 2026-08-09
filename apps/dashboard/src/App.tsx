@@ -1078,7 +1078,7 @@ function App() {
                                             )}
                                           </td>
                                           <td>{item.grade}</td>
-                                          <td>{item.service_type === 0 ? 'خطة فصلية' : item.service_type === 1 ? 'تحضير يومي' : String(item.subject).includes('معلم مرحلة') ? 'بكج (حسب المادة)' : 'بكج كامل (خطة وتحضير وتحليل)'}</td>
+                                          <td>{item.service_type === 0 ? 'خطة فصلية مع تحليل' : item.service_type === 1 ? 'تحضير يومي' : String(item.subject).includes('معلم مرحلة') ? 'بكج (حسب المادة)' : 'بكج كامل (خطة وتحضير وتحليل)'}</td>
                                           <td>{item.price} د.أ</td>
                                         </tr>
                                       ))}

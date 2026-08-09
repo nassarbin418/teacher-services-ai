@@ -44,7 +44,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     // Service Type Label Mapper
     const serviceTypeName = (type: number | string, subjectName?: string) => {
       if (String(subjectName || '').includes('معلم مرحلة')) return 'بكج (حسب المادة)';
-      if (type === 0 || type === '0') return 'خطة فصلية';
+      if (type === 0 || type === '0') return 'خطة فصلية مع تحليل';
       if (type === 1 || type === '1') return 'تحضير يومي';
       if (type === 2 || type === '2') return 'بكج كامل (خطة وتحضير وتحليل)';
       return String(type || 'غير محدد');
