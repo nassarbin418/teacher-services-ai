@@ -536,7 +536,7 @@ function InquiryScreen({ onBack, showToast, onEditOrder }: any) {
                                   </td>
                                   <td style={{ padding: '0.5rem' }}>{item.grade}</td>
                                   <td style={{ padding: '0.5rem' }}>
-                                    {['الأول', 'الثاني', 'الثالث'].includes(item.grade) ? 'خطة وتحضير وتحليل' : item.service_type === 0 ? 'خطة' : item.service_type === 1 ? 'تحضير' : 'خطة وتحضير'}
+                                    {item.service_type === 0 ? 'خطة' : item.service_type === 1 ? 'تحضير' : 'خطة وتحضير'}
                                   </td>
                                   <td style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 'bold' }}>{item.price} د.أ</td>
                                 </tr>
@@ -811,15 +811,10 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
             : (subject.plan_price > 0 ? 'plan' : 'prep');
 
           item.grades.forEach(g => {
-            if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
-              total += 7; // Fixed package price
-              if (item.separateDosiyyah) total += 0.5;
-            } else {
-              if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') total += Number(subject.plan_price || 0);
-              if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') total += Number(subject.prep_price || 0);
-              if (item.separateDosiyyah && effectiveServiceType !== 'plan') {
-                total += 0.5;
-              }
+            if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') total += Number(subject.plan_price || 0);
+            if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') total += Number(subject.prep_price || 0);
+            if (item.separateDosiyyah && effectiveServiceType !== 'plan') {
+              total += 0.5;
             }
           });
         });
@@ -940,15 +935,10 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                 ? item.serviceType
                 : (subject.plan_price > 0 ? 'plan' : 'prep');
 
-              if (['الأول', 'الثاني', 'الثالث'].includes(grade)) {
-                price = 7;
-                if (item.separateDosiyyah) price += 0.5;
-              } else {
-                if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') price += Number(subject.plan_price || 0);
-                if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') price += Number(subject.prep_price || 0);
-                if (item.separateDosiyyah && effectiveServiceType !== 'plan') {
-                  price += 0.5;
-                }
+              if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') price += Number(subject.plan_price || 0);
+              if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') price += Number(subject.prep_price || 0);
+              if (item.separateDosiyyah && effectiveServiceType !== 'plan') {
+                price += 0.5;
               }
               orderItems.push({
                 order_id: orderId,
@@ -1384,7 +1374,6 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                 {teacher.items.map(item => {
                   const subject = dbSubjects.find(s => s.id === item.subjectId);
                   const isExpanded = expandedItems.includes(item.id);
-                  const hasPackageGrades = item.grades.some(g => ['الأول', 'الثاني', 'الثالث'].includes(g));
                   
                   const planPrice = subject ? (Number(subject.plan_price) || 0) : 0;
                   const prepPrice = subject ? (Number(subject.prep_price) || 0) : 0;
@@ -1394,18 +1383,15 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                     : item.serviceType;
 
                   let subjectTotal = 0;
-                  item.grades.forEach(g => {
-                    if (['الأول', 'الثاني', 'الثالث'].includes(g)) {
-                      subjectTotal += 7;
-                      if (item.separateDosiyyah) subjectTotal += 0.5;
-                    } else if (subject) {
+                  if (subject) {
+                    item.grades.forEach(g => {
                       if (effectiveServiceType === 'plan' || effectiveServiceType === 'both') subjectTotal += planPrice;
                       if (effectiveServiceType === 'prep' || effectiveServiceType === 'both') subjectTotal += prepPrice;
                       if (item.separateDosiyyah && effectiveServiceType !== 'plan') {
                         subjectTotal += 0.5;
                       }
-                    }
-                  });
+                    });
+                  }
 
                   const usedGrades = teacher.items
                     .filter((otherItem: any) => otherItem.id !== item.id && otherItem.subjectId === item.subjectId)
@@ -1436,7 +1422,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                             {hasError && <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 'bold', textAlign: 'right' }}>يرجى اختيار صف واحد على الأقل للمادة</div>}
                           </div>
 
-                          {!hasPackageGrades && subject && (
+                          {subject && (
                             <div className="form-group" style={{ marginTop: '1.5rem' }}>
                               <label style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '1rem', display: 'block' }}>الخدمة المطلوبة للصف الواحد:</label>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
@@ -1459,13 +1445,6 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                                   </label>
                                 )}
                               </div>
-                            </div>
-                          )}
-
-                          {hasPackageGrades && (
-                            <div style={{ background: '#fef3c7', padding: '1rem', borderRadius: '8px', color: '#92400e', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
-                              <Package size={20} />
-                              <span>الصفوف (الأول، الثاني، الثالث) تعتبر بكج بسعر 7 دنانير ثابتة للصف الواحد وتشمل <strong style={{ color: '#1e3a8a', fontWeight: 'bold' }}>خطة وتحضير وتحليل</strong>.</span>
                             </div>
                           )}
 
