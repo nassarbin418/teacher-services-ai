@@ -77,19 +77,10 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // Calculate display values for delivery and total
     const isDelivery = String(order.delivery_type) === '1' || Number(order.delivery_cost) > 0;
-    const isAmman = order.governorate === 'عمان' || order.governorate === 'محافظة عمان';
     let displayDeliveryCost = Number(order.delivery_cost) || (isDelivery ? 3 : 0);
     let displayTotalAmount = Number(order.total_amount) || 0;
     
-    if (isDelivery && !isAmman && order.governorate) {
-      if (displayDeliveryCost === 3) {
-        displayDeliveryCost = 4;
-        displayTotalAmount += 1;
-      } else if (!order.delivery_cost) {
-        displayDeliveryCost = 4;
-        displayTotalAmount += 4;
-      }
-    }
+    // Delivery cost is 3 for all governorates by default unless specified differently in the database
 
     // --- 1. Fill Order Info (معلومات الطلب) ---
     // Cell A3: Order ID
@@ -190,9 +181,40 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       }
     });
 
+    const gradeOrder = [
+      'KG1',
+      'KG2',
+      'الأول',
+      'الثاني',
+      'الثالث',
+      'الرابع',
+      'الخامس',
+      'السادس',
+      'السابع',
+      'الثامن',
+      'التاسع',
+      'العاشر',
+      'الحادي عشر',
+      'الثاني عشر'
+    ];
+
+    const sortGrades = (grades: string[]) => {
+      return [...grades].sort((a, b) => {
+        const cleanA = (a || '').trim();
+        const cleanB = (b || '').trim();
+        const indexA = gradeOrder.indexOf(cleanA);
+        const indexB = gradeOrder.indexOf(cleanB);
+        
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return cleanA.localeCompare(cleanB, 'ar');
+      });
+    };
+
     const aggregatedItemsList = Array.from(aggregatedItemsMap.values()).map(item => ({
       ...item,
-      grade: item.grades.join('، ')
+      grade: sortGrades(item.grades).join('، ')
     }));
 
     // Sort items alphabetically by subject name
@@ -229,7 +251,20 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     if (items && items.length > 0) {
       items.forEach((item: any, index: number) => {
         const r = 11 + index;
-        worksheet.getRow(r).height = 35; // Increased for better readability on multiple lines
+        
+        // Calculate required lines based on text length and column widths
+        const gradeLen = (item.grade || '').length;
+        const subjectLen = (item.displaySubject || '').length;
+        const typeLen = (item.sType || '').length;
+        
+        const gradeLines = Math.ceil(gradeLen / 25);
+        const subjectLines = Math.ceil(subjectLen / 22);
+        const typeLines = Math.ceil(typeLen / 30);
+        
+        const maxLines = Math.max(1, gradeLines, subjectLines, typeLines);
+        
+        // Give plenty of top and bottom padding: base height 45, or ~20 per line for multi-line
+        worksheet.getRow(r).height = Math.max(45, (maxLines * 20) + 15);
 
         const cellA = worksheet.getCell(`A${r}`); cellA.style = {}; cellA.value = item.teacher_name || ''; setDataStyle(cellA);
         const cellB = worksheet.getCell(`B${r}`); cellB.style = {}; cellB.value = item.displaySubject; setDataStyle(cellB);

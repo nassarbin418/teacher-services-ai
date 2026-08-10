@@ -26,6 +26,14 @@ CREATE EXTENSION IF NOT EXISTS pg_cron;
 CREATE OR REPLACE FUNCTION delete_old_completed_orders()
 RETURNS void AS $$
 BEGIN
+  -- حذف تفاصيل الطلبات للطلبات المكتملة والتي مر على وقت اكتمالها 3 أيام
+  DELETE FROM order_details
+  WHERE order_id IN (
+    SELECT id FROM orders 
+    WHERE status = 3 
+    AND completed_at < NOW() - INTERVAL '3 days'
+  );
+
   -- حذف الطلبات المكتملة والتي مر على وقت اكتمالها 3 أيام
   DELETE FROM orders 
   WHERE status = 3 
