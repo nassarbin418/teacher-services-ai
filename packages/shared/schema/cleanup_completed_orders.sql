@@ -27,7 +27,7 @@ CREATE OR REPLACE FUNCTION delete_old_completed_orders()
 RETURNS void AS $$
 BEGIN
   -- حذف تفاصيل الطلبات للطلبات المكتملة والتي مر على وقت اكتمالها 3 أيام
-  DELETE FROM order_details
+  DELETE FROM order_items
   WHERE order_id IN (
     SELECT id FROM orders 
     WHERE status = 3 

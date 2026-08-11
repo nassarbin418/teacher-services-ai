@@ -12,7 +12,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // Ensure Right-To-Left view for Arabic sheet
     worksheet.views = [{ rightToLeft: true }];
-    
+
     // Force fit-to-width for A4 Landscape printing
     worksheet.pageSetup = {
       orientation: 'landscape',
@@ -20,7 +20,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       fitToWidth: 1,
       fitToHeight: 0
     };
-    
+
     // Adjust Column Widths to prevent awkward wrapping
     worksheet.getColumn(1).width = 22; // A (المدرسة/اسم المعلم)
     worksheet.getColumn(2).width = 26; // B (المنطقة/المادة - تكبير)
@@ -79,15 +79,13 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     const isDelivery = String(order.delivery_type) === '1' || Number(order.delivery_cost) > 0;
     let displayDeliveryCost = Number(order.delivery_cost) || (isDelivery ? 3 : 0);
     let displayTotalAmount = Number(order.total_amount) || 0;
-    
-    // Delivery cost is 3 for all governorates by default unless specified differently in the database
 
     // --- 1. Fill Order Info (معلومات الطلب) ---
     // Cell A3: Order ID
     const cellA3 = worksheet.getCell('A3');
     cellA3.value = `#${order.daily_order_number || order.id || ''}`;
     setValueStyle(cellA3);
-    
+
     // Cell B3: Order Creation Date
     const cellB3 = worksheet.getCell('B3');
     cellB3.value = formattedCreatedAtWithTime;
@@ -113,7 +111,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       lblCell.value = label;
       lblCell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF000000' } };
       lblCell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-      
+
       const valCell = worksheet.getCell(`G${r}`);
       valCell.value = sideValues[i];
       valCell.font = { name: 'Segoe UI', size: 12, bold: false, color: { argb: 'FF0F172A' } };
@@ -140,7 +138,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     // --- 2. Fill Customer Info (معلومات العميل) ---
     // Override template header for school type
     worksheet.getCell('E6').value = 'جنس المُتعلم';
-    
+
     // Row 7 (Values 1): المدرسة | اللواء/المنطقة | الاسم | نوع التعليم | جنس المُتعلم
     worksheet.getRow(7).height = 40; // Increased for multiple line school names
     worksheet.getCell('A7').value = order.school_name || '';
@@ -151,22 +149,22 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // --- 3. Fill Teachers & Items (تفاصيل المعلمين والمواد) ---
     const itemsRaw = itemsParam || order.order_items || order.items || [];
-    
+
     // Aggregate items that have the same teacher, subject, and service type
     const aggregatedItemsMap = new Map<string, any>();
-    
+
     itemsRaw.forEach((item: any) => {
       const teacherName = item.teacher_name || '';
       const subVal = String(item.subject || '');
       const displaySubject = (item.separate_dosiyyah && !subVal.includes('فصل الدوسيات')) ? `${subVal} (فصل الدوسيات)` : subVal;
       const sType = serviceTypeName(item.service_type, item.subject);
-      
+
       const key = `${teacherName}___${displaySubject}___${sType}`;
-      
+
       if (aggregatedItemsMap.has(key)) {
         const existing = aggregatedItemsMap.get(key);
         if (item.grade && !existing.grades.includes(item.grade)) {
-           existing.grades.push(item.grade);
+          existing.grades.push(item.grade);
         }
         existing.price += Number(item.price) || 0;
       } else {
@@ -204,7 +202,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
         const cleanB = (b || '').trim();
         const indexA = gradeOrder.indexOf(cleanA);
         const indexB = gradeOrder.indexOf(cleanB);
-        
+
         if (indexA !== -1 && indexB !== -1) return indexA - indexB;
         if (indexA !== -1) return -1;
         if (indexB !== -1) return 1;
@@ -243,26 +241,26 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
 
     // --- CLEAN SLATE FOR DYNAMIC SECTION ---
     // 1. Unmerge template's fixed boxes so we don't get merge conflicts when drawing dynamically
-    try { worksheet.unMergeCells('A19:B19'); } catch (e) {}
-    try { worksheet.unMergeCells('D19:E19'); } catch (e) {}
-    try { worksheet.unMergeCells('A20:B22'); } catch (e) {}
-    try { worksheet.unMergeCells('D20:E22'); } catch (e) {}
+    try { worksheet.unMergeCells('A19:B19'); } catch (e) { }
+    try { worksheet.unMergeCells('D19:E19'); } catch (e) { }
+    try { worksheet.unMergeCells('A20:B22'); } catch (e) { }
+    try { worksheet.unMergeCells('D20:E22'); } catch (e) { }
 
     if (items && items.length > 0) {
       items.forEach((item: any, index: number) => {
         const r = 11 + index;
-        
+
         // Calculate required lines based on text length and column widths
         const gradeLen = (item.grade || '').length;
         const subjectLen = (item.displaySubject || '').length;
         const typeLen = (item.sType || '').length;
-        
+
         const gradeLines = Math.ceil(gradeLen / 25);
         const subjectLines = Math.ceil(subjectLen / 22);
         const typeLines = Math.ceil(typeLen / 30);
-        
+
         const maxLines = Math.max(1, gradeLines, subjectLines, typeLines);
-        
+
         // Give plenty of top and bottom padding: base height 45, or ~20 per line for multi-line
         worksheet.getRow(r).height = Math.max(45, (maxLines * 20) + 15);
 
@@ -366,7 +364,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       if (i >= 3) cell.numFmt = '@'; // Phone numbers
       cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
     });
-    
+
     // Increment currentRowIndex by 2 (leave a gap before delivery boxes)
     currentRowIndex += 2;
 
@@ -383,7 +381,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     headerDeliveryCell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF1E293B' } };
     headerDeliveryCell.alignment = { vertical: 'middle', horizontal: 'center' };
     headerDeliveryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-    
+
     // Apply borders to the merged header cells (both Col 1 and Col 2)
     worksheet.getCell(boxHeaderRow, 1).border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
     worksheet.getCell(boxHeaderRow, 2).border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
@@ -396,7 +394,7 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     headerPickupCell.font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF1E293B' } };
     headerPickupCell.alignment = { vertical: 'middle', horizontal: 'center' };
     headerPickupCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-    
+
     // Apply borders to the merged header cells (both Col 4 and Col 5)
     worksheet.getCell(boxHeaderRow, 4).border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
     worksheet.getCell(boxHeaderRow, 5).border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
@@ -512,10 +510,10 @@ export const exportDeliveryReports = async (orders: any[]) => {
   const createWorkbook = async (data: any[], title: string, filename: string) => {
     if (data.length === 0) return;
     const isAmman = title.includes('عمان');
-    
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('التوصيل', { views: [{ rightToLeft: true }] });
-    
+
     // Define columns conditionally
     const cols: any[] = [
       { header: '', key: 'margin', width: 2 }, // Right Margin
@@ -523,11 +521,11 @@ export const exportDeliveryReports = async (orders: any[]) => {
       { header: 'رقم الطلب', key: 'id', width: 15 },
       { header: 'تاريخ الطلب', key: 'date', width: 15 },
     ];
-    
+
     if (!isAmman) {
       cols.push({ header: 'المحافظة', key: 'gov', width: 15 });
     }
-    
+
     cols.push(
       { header: 'عنوان البيت', key: 'homeLocation', width: 30 },
       { header: 'عنوان المدرسة', key: 'schoolLocation', width: 30 },
@@ -535,7 +533,7 @@ export const exportDeliveryReports = async (orders: any[]) => {
       { header: 'المبلغ', key: 'total', width: 12 },
       { header: 'رقم الهاتف', key: 'phone', width: 15 }
     );
-    
+
     worksheet.columns = cols;
 
     let sumTotal = 0;
@@ -545,7 +543,7 @@ export const exportDeliveryReports = async (orders: any[]) => {
         const dateObj = new Date(order.created_at);
         d = `${dateObj.toLocaleDateString('ar-EG')}`;
       }
-      
+
       let orderTotal = Number(order.total_amount) || 0;
       if (!isAmman) {
         const isDelivery = String(order.delivery_type) === '1' || Number(order.delivery_cost) > 0;
@@ -557,7 +555,7 @@ export const exportDeliveryReports = async (orders: any[]) => {
         }
       }
       sumTotal += orderTotal;
-      
+
       const rowData: any = {
         margin: '',
         seq: index + 1,
@@ -569,11 +567,11 @@ export const exportDeliveryReports = async (orders: any[]) => {
         total: orderTotal,
         phone: String(order.phone || '')
       };
-      
+
       if (!isAmman) {
         rowData.gov = order.governorate || '';
       }
-      
+
       worksheet.addRow(rowData);
     });
 
@@ -587,7 +585,7 @@ export const exportDeliveryReports = async (orders: any[]) => {
 
     // At the top - Date on the right (B2), Day on the left
     worksheet.pageSetup = { printTitlesRow: '4:4' };
-    
+
     // At the top - Date on the right (B2:D2)
     worksheet.mergeCells('B2:D2');
     const topDateCell = worksheet.getCell('B2');
@@ -604,7 +602,7 @@ export const exportDeliveryReports = async (orders: any[]) => {
 
     const lastColLetter = isAmman ? 'I' : 'J';
     const prevColLetter = isAmman ? 'H' : 'I';
-    
+
     // Day on the left (merged over the last two columns)
     worksheet.mergeCells(`${prevColLetter}2:${lastColLetter}2`);
     const topDayCell = worksheet.getCell(`${prevColLetter}2`);
@@ -619,7 +617,7 @@ export const exportDeliveryReports = async (orders: any[]) => {
     // Style all cells in the table
     const maxCol = isAmman ? 9 : 10;
     const phoneColIdx = isAmman ? 9 : 10;
-    
+
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber >= 4 && rowNumber <= data.length + 4) {
         row.eachCell((cell, colNumber) => {
@@ -646,23 +644,23 @@ export const exportDeliveryReports = async (orders: any[]) => {
     const netAmount = sumTotal - deliveryFee;
     const totalColIndex = isAmman ? 8 : 9;
     const labelColIndex = isAmman ? 7 : 8;
-    
+
     let currentRow = data.length + 5;
-    
+
     const addSummaryRow = (label: string, value: number) => {
       const row = worksheet.getRow(currentRow);
-      
+
       const labelCell = row.getCell(labelColIndex);
       labelCell.value = label;
       labelCell.font = { name: 'Segoe UI', size: 12, bold: true };
       labelCell.alignment = { horizontal: 'left', vertical: 'middle' };
-      
+
       const valueCell = row.getCell(totalColIndex);
       valueCell.value = value;
       valueCell.font = { name: 'Segoe UI', size: 12, bold: true };
       valueCell.alignment = { horizontal: 'center', vertical: 'middle' };
       valueCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-      
+
       row.height = 25;
       currentRow++;
     };
@@ -673,7 +671,7 @@ export const exportDeliveryReports = async (orders: any[]) => {
 
     if (data.length > 25) {
       currentRow++; // Empty row
-      
+
       // At the end of the table - Date on the right, Day on the left
       worksheet.mergeCells(`B${currentRow}:C${currentRow}`);
       const bottomDateCell = worksheet.getCell(`B${currentRow}`);
