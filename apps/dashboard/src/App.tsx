@@ -785,7 +785,7 @@ function App() {
                       showToast('الرجاء تحديد طلبات أولاً', 'error');
                       return;
                     }
-                    const ordersToExport = currentOrders.filter(o => selectedOrders.includes(o.id));
+                    const ordersToExport = orders.filter(o => selectedOrders.includes(o.id));
                     exportDeliveryReports(ordersToExport);
                   }}
                   disabled={selectedOrders.length === 0}
