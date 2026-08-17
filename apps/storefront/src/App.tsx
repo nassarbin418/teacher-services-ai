@@ -998,8 +998,8 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
   const isPrivate = customerInfo.directorate === 'التعليم الخاص' || customerInfo.directorate === 'الثقافة العسكرية';
   const isNameValid = customerInfo.name && customerInfo.name.trim().split(/\s+/).length >= 2;
   const isSchoolNameValid = customerInfo.schoolName && customerInfo.schoolName.trim().split(/\s+/).length >= 3;
-  const isPhoneValid = customerInfo.phone && (!customerInfo.phone.startsWith('07') || customerInfo.phone.length === 10);
-  const isPhone2Valid = customerInfo.phone2 && (!customerInfo.phone2.startsWith('07') || customerInfo.phone2.length === 10);
+  const isPhoneValid = customerInfo.phone && /^(079|078|077)\d{7}$/.test(customerInfo.phone);
+  const isPhone2Valid = customerInfo.phone2 && /^(079|078|077)\d{7}$/.test(customerInfo.phone2);
   const isStep1Valid = isNameValid && isSchoolNameValid && isPhoneValid && isPhone2Valid && customerInfo.schoolType && customerInfo.directorate && customerInfo.governorate && (isPrivate || (customerInfo.district && (customerInfo.district !== 'إضافة' || customerInfo.otherDistrict))) && isDeliveryValid;
   
   const teacherNames = teachers.map(t => t.name.trim()).filter(n => n);
@@ -1247,9 +1247,9 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                 <ul style={{ color: '#ef4444', margin: 0, paddingRight: '1.5rem', fontSize: '0.9rem' }}>
                   {!isNameValid && <li>الاسم الكامل (يجب أن يتكون من مقطعين على الأقل)</li>}
                   {!customerInfo.phone && <li>رقم الهاتف الأساسي</li>}
-                  {customerInfo.phone && customerInfo.phone.startsWith('07') && customerInfo.phone.length !== 10 && <li>رقم الهاتف الأساسي (يجب أن يكون 10 خانات)</li>}
+                  {customerInfo.phone && !/^(079|078|077)\d{7}$/.test(customerInfo.phone) && <li>رقم الهاتف الأساسي (يجب أن يبدأ بـ 079, 078, أو 077 ويكون 10 خانات)</li>}
                   {!customerInfo.phone2 && <li>رقم الهاتف الآخر (البديل إجباري)</li>}
-                  {customerInfo.phone2 && customerInfo.phone2.startsWith('07') && customerInfo.phone2.length !== 10 && <li>رقم الهاتف الآخر (يجب أن يكون 10 خانات)</li>}
+                  {customerInfo.phone2 && !/^(079|078|077)\d{7}$/.test(customerInfo.phone2) && <li>رقم الهاتف الآخر (يجب أن يبدأ بـ 079, 078, أو 077 ويكون 10 خانات)</li>}
                   {!isSchoolNameValid && <li>اسم المدرسة (يجب أن يتكون من 3 مقاطع على الأقل)</li>}
                   {!customerInfo.schoolType && <li>جنس المُتعلم</li>}
                   {!customerInfo.directorate && <li>نوع التعليم</li>}
@@ -1305,8 +1305,18 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                     onChange={e => updateTeacherName(teacher.id, e.target.value)} 
                     maxLength={100} 
                     placeholder="أدخل اسم المعلم..." 
+                    dir="auto"
                     style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '8px', border: teacher.name ? '1px solid var(--border)' : '1px dashed #ef4444', outline: 'none', fontSize: '1rem' }}
                   />
+                  {teacher.items.some(item => {
+                    const subject = dbSubjects.find(s => s.id === item.subjectId);
+                    return subject && (subject.name.includes('انجليز') || subject.name.includes('إنجليز'));
+                  }) && /[\u0600-\u06FF]/.test(teacher.name) && (
+                    <div className="fade-in" style={{ marginTop: '0.75rem', padding: '0.75rem 1rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', color: '#b45309', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
+                      <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+                      <span>تنبيه: لقد اخترت مادة اللغة الإنجليزية. يرجى كتابة اسم المعلم باللغة الإنجليزية، أو إضافته في حقل الملاحظات في الخطوة القادمة.</span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
