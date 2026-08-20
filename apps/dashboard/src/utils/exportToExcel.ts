@@ -545,15 +545,6 @@ export const exportDeliveryReports = async (orders: any[]) => {
       }
 
       let orderTotal = Number(order.total_amount) || 0;
-      if (!isAmman) {
-        const isDelivery = String(order.delivery_type) === '1' || Number(order.delivery_cost) > 0;
-        const originalDelivery = Number(order.delivery_cost) || (isDelivery ? 3 : 0);
-        if (isDelivery && originalDelivery === 3) {
-          orderTotal += 1;
-        } else if (isDelivery && !order.delivery_cost) {
-          orderTotal += 4;
-        }
-      }
       sumTotal += orderTotal;
 
       const rowData: any = {
@@ -640,7 +631,7 @@ export const exportDeliveryReports = async (orders: any[]) => {
     });
 
     // Add totals at the bottom, under the "المبلغ" column
-    const deliveryFee = isAmman ? (3 * data.length) : (4 * data.length);
+    const deliveryFee = 3 * data.length;
     const netAmount = sumTotal - deliveryFee;
     const totalColIndex = isAmman ? 8 : 9;
     const labelColIndex = isAmman ? 7 : 8;
