@@ -865,8 +865,8 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
           delivery_type: customerInfo.deliveryType === 'pickup' ? 0 : 1,
           delivery_cost: deliveryCost,
           total_amount: totalAmount,
-          school_location: `${customerInfo.schoolDeliveryArea} - ${customerInfo.schoolLocation}`,
-          home_location: `${customerInfo.homeDeliveryArea} - ${customerInfo.homeLocation}`,
+          school_location: customerInfo.deliveryType === 'delivery' && (customerInfo.schoolDeliveryArea || customerInfo.schoolLocation) ? `${customerInfo.schoolDeliveryArea ? customerInfo.schoolDeliveryArea + ' - ' : ''}${customerInfo.schoolLocation}`.trim() : null,
+          home_location: customerInfo.deliveryType === 'delivery' && (customerInfo.homeDeliveryArea || customerInfo.homeLocation) ? `${customerInfo.homeDeliveryArea ? customerInfo.homeDeliveryArea + ' - ' : ''}${customerInfo.homeLocation}`.trim() : null,
           notes: customerInfo.notes || null
         }).eq('id', orderId);
 
@@ -892,8 +892,8 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
           delivery_type: customerInfo.deliveryType === 'pickup' ? 0 : 1,
           delivery_cost: deliveryCost,
           total_amount: totalAmount,
-          school_location: `${customerInfo.schoolDeliveryArea} - ${customerInfo.schoolLocation}`,
-          home_location: `${customerInfo.homeDeliveryArea} - ${customerInfo.homeLocation}`,
+          school_location: customerInfo.deliveryType === 'delivery' && (customerInfo.schoolDeliveryArea || customerInfo.schoolLocation) ? `${customerInfo.schoolDeliveryArea ? customerInfo.schoolDeliveryArea + ' - ' : ''}${customerInfo.schoolLocation}`.trim() : null,
+          home_location: customerInfo.deliveryType === 'delivery' && (customerInfo.homeDeliveryArea || customerInfo.homeLocation) ? `${customerInfo.homeDeliveryArea ? customerInfo.homeDeliveryArea + ' - ' : ''}${customerInfo.homeLocation}`.trim() : null,
           notes: customerInfo.notes || null,
           status: 0
         }).select();
@@ -1182,7 +1182,14 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
               <label className="form-label" style={{ textAlign: 'right' }}>طريقة الاستلام <span style={{ color: 'red' }}>*</span></label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div
-                  onClick={() => setCustomerInfo({ ...customerInfo, deliveryType: 'pickup' })}
+                  onClick={() => setCustomerInfo({
+                    ...customerInfo,
+                    deliveryType: 'pickup',
+                    schoolDeliveryArea: '',
+                    schoolLocation: '',
+                    homeDeliveryArea: '',
+                    homeLocation: ''
+                  })}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem', border: customerInfo.deliveryType === 'pickup' ? '2px solid var(--primary)' : '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', background: 'white', fontWeight: 'bold' }}
                 >
                   <Store size={20} /> استلام من المكتبة
