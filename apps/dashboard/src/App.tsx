@@ -310,6 +310,47 @@ function App() {
     }
   };
 
+  const handleExportDeliveryReports = async () => {
+    if (selectedOrders.length === 0) {
+      showToast('الرجاء تحديد طلبات أولاً', 'error');
+      return;
+    }
+
+    const ordersToExport = orders.filter(o => selectedOrders.includes(o.id));
+    if (ordersToExport.length === 0) {
+      showToast('لم يتم العثور على الطلبات المحددة', 'error');
+      return;
+    }
+
+    try {
+      await exportDeliveryReports(ordersToExport);
+
+      const selectedIds = ordersToExport.map(o => o.id);
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 2 })
+        .in('id', selectedIds);
+
+      if (error) throw error;
+
+      const notifsToInsert = ordersToExport.map(o => ({
+        message: `تم تغيير حالة الطلب #${o.daily_order_number || o.id} إلى جاهز وهو مع شركة التوصيل`,
+        type: 'update',
+        order_id: o.id
+      }));
+
+      await supabase.from('notifications').insert(notifsToInsert);
+
+      setOrders(prev => prev.map(o => selectedIds.includes(o.id) ? { ...o, status: 2 } : o));
+      setSelectedOrders([]);
+
+      showToast(`تم تصدير تقرير التوصيل وتحديث حالة ${ordersToExport.length} طلب إلى "جاهز وهو مع شركة التوصيل" بنجاح`, 'success');
+    } catch (err) {
+      console.error('Error exporting delivery reports:', err);
+      showToast('حدث خطأ أثناء تصدير تقرير التوصيل أو تحديث الحالة', 'error');
+    }
+  };
+
   // Subjects Management functions
   const handleAddSubject = async () => {
     if (!newSubject.name) return showToast('الرجاء إدخال اسم المادة', 'error');
@@ -779,15 +820,26 @@ function App() {
               </div>
 
               <div className="filter-select" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: 'auto' }}>
+                {selectedOrders.length > 0 && (
+                  <button
+                    onClick={() => setSelectedOrders([])}
+                    style={{
+                      background: '#f1f5f9',
+                      color: '#64748b',
+                      border: '1px solid #cbd5e1',
+                      padding: '0.6rem 0.8rem',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem'
+                    }}
+                    title="إلغاء تحديد كل الطلبات"
+                  >
+                    إلغاء التحديد
+                  </button>
+                )}
                 <button
-                  onClick={() => {
-                    if (selectedOrders.length === 0) {
-                      showToast('الرجاء تحديد طلبات أولاً', 'error');
-                      return;
-                    }
-                    const ordersToExport = orders.filter(o => selectedOrders.includes(o.id));
-                    exportDeliveryReports(ordersToExport);
-                  }}
+                  onClick={handleExportDeliveryReports}
                   disabled={selectedOrders.length === 0}
                   style={{
                     background: selectedOrders.length > 0 ? '#10b981' : '#cbd5e1',
@@ -802,7 +854,7 @@ function App() {
                     gap: '0.5rem',
                     height: '100%'
                   }}
-                  title="طباعة التقرير للطلبات المحددة"
+                  title="تصدير تقرير التوصيل وتحويل الحالة إلى جاهز للتوصيل"
                 >
                   <Download size={18} /> تقرير التوصيل {selectedOrders.length > 0 ? `(${selectedOrders.length})` : ''}
                 </button>
@@ -857,6 +909,85 @@ function App() {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {selectedOrders.length > 0 && (
+              <div className="fade-in" style={{
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '12px',
+                padding: '0.85rem 1.25rem',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem',
+                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.08)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#166534', fontWeight: 'bold', fontSize: '0.95rem' }}>
+                  <span style={{ fontSize: '1.2rem' }}>📦</span>
+                  <span>تم تحديد <strong>{selectedOrders.length}</strong> طلب توصيل (عبر جميع الصفحات)</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  {filteredOrders.filter(o => o.delivery_type === 1 && !selectedOrders.includes(o.id)).length > 0 && (
+                    <button
+                      onClick={() => {
+                        const allFilteredDeliverable = filteredOrders.filter(o => o.delivery_type === 1).map(o => o.id);
+                        setSelectedOrders(Array.from(new Set([...selectedOrders, ...allFilteredDeliverable])));
+                      }}
+                      style={{
+                        background: '#dcfce7',
+                        color: '#15803d',
+                        border: '1px solid #86efac',
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      تحديد كل طلبات التوصيل المعروضة بالبحث ({filteredOrders.filter(o => o.delivery_type === 1).length})
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setSelectedOrders([])}
+                    style={{
+                      background: 'white',
+                      color: '#dc2626',
+                      border: '1px solid #fca5a5',
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    إلغاء التحديد
+                  </button>
+                  <button
+                    onClick={handleExportDeliveryReports}
+                    style={{
+                      background: '#10b981',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.45rem 1.1rem',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+                    }}
+                  >
+                    <Download size={16} /> تصدير وتحويل إلى جاهز ({selectedOrders.length})
+                  </button>
+                </div>
               </div>
             )}
 

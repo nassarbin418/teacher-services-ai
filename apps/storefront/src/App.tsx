@@ -1410,12 +1410,7 @@ function OrderForm({ onBack, showToast, initialOrder }: any) {
                     });
                   }
 
-                  const usedGrades = teacher.items
-                    .filter((otherItem: any) => otherItem.id !== item.id && otherItem.subjectId === item.subjectId)
-                    .flatMap((otherItem: any) => otherItem.grades);
-
-                  const baseOptions = (subject && subjectGradesMap[String(subject.id)] && subjectGradesMap[String(subject.id)].length > 0) ? subjectGradesMap[String(subject.id)] : GRADES;
-                  const availableOptions = baseOptions.filter((g: string) => !usedGrades.includes(g));
+                  const availableOptions = (subject && subjectGradesMap[String(subject.id)] && subjectGradesMap[String(subject.id)].length > 0) ? subjectGradesMap[String(subject.id)] : GRADES;
 
                   const hasError = item.grades.length === 0;
 
