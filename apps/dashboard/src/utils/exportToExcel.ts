@@ -27,8 +27,8 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     worksheet.getColumn(3).width = 30; // C (الاسم/الصف/موقع البيت - تكبير)
     worksheet.getColumn(4).width = 34; // D (نوع التعليم/نوع الخدمة - تكبير إضافي لمنع التفاف خطة وتحضير)
     worksheet.getColumn(5).width = 15; // E (جنس المتعلم/السعر)
-    worksheet.getColumn(6).width = 15; // F (Side Labels - increased to prevent wrapping)
-    worksheet.getColumn(7).width = 18; // G (Side Values)
+    worksheet.getColumn(6).width = 17; // F (Side Labels - increased to prevent wrapping)
+    worksheet.getColumn(7).width = 24; // G (Side Values)
 
     // Format createdAt date strings (One with time, one without)
     let formattedCreatedAtDateOnly = '—';
@@ -91,10 +91,21 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
     cellB3.value = formattedCreatedAtWithTime;
     setValueStyle(cellB3);
 
-    // --- Side Summary Section (F2:G7) ---
+    // --- Side Summary Section (F2:G10) ---
     const govText = order.governorate === 'عمان' ? 'عمان' : (order.governorate || '—');
-    const sideLabels = ['المحافظة:', 'موقع المدرسة:', 'موقع البيت:', 'رقم الطلب:', 'تاريخ الطلب:', 'الهاتف 1:', 'الهاتف 2:', 'قيمة الطلب:'];
+    const sideLabels = [
+      'اسم صاحب الطلب:',
+      'المحافظة:',
+      'موقع المدرسة:',
+      'موقع البيت:',
+      'رقم الطلب:',
+      'تاريخ الطلب:',
+      'الهاتف 1:',
+      'الهاتف 2:',
+      'قيمة الطلب:'
+    ];
     const sideValues = [
+      order.customer_name || '—',
       govText,
       order.school_location || '—',
       order.home_location || '—',
@@ -117,8 +128,8 @@ export const exportOrderToExcel = async (order: any, itemsParam?: any[]) => {
       valCell.font = { name: 'Segoe UI', size: 12, bold: false, color: { argb: 'FF0F172A' } };
       valCell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
 
-      if (i === 2) {
-        worksheet.getRow(r).height = 40; // Increase height for 'موقع البيت' to fit multiple lines
+      if (label === 'موقع البيت:' || label === 'موقع المدرسة:' || label === 'اسم صاحب الطلب:') {
+        worksheet.getRow(r).height = 40; // Increase height for addresses and name to fit multiple lines
       }
     });
 
